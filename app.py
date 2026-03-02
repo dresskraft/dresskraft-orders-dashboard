@@ -10,18 +10,35 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# =====================================================
-# HELPER
-# =====================================================
+# ==========================================
+# HELPER FUNCTION
+# ==========================================
 
 def format_indian(number):
-    if pd.isna(number):
+    if pd.isna(number) or number == "":
         return "-"
     return "{:,}".format(int(round(float(number))))
 
-# =====================================================
-# LOGIN
-# =====================================================
+def payment_status_logic(price, received):
+    try:
+        price = float(price)
+        received = float(received)
+    except:
+        return "-"
+
+    if price == 0:
+        return "-"
+    if received == 0:
+        return "Unpaid"
+    if received < price:
+        return "Partial Paid"
+    if received == price:
+        return "Fully Paid"
+    return "-"
+
+# ==========================================
+# LOGIN SYSTEM
+# ==========================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
@@ -67,14 +84,11 @@ if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# =====================================================
+# ==========================================
 # DATA
-# =====================================================
+# ==========================================
 
 FILE_NAME = "orders.csv"
-
-ADDON_OPTIONS = ["Pearls", "Studs", "Both Mix", "No Add On", "Read Chat"]
-PRODUCTION_OPTIONS = ["To Start", "Ongoing", "Pending for Payment", "Paid - To Dispatch", "Dispatched"]
 
 if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
@@ -82,96 +96,58 @@ else:
     df = pd.DataFrame(columns=[
         "Est Delivery","Name","Add-on","Sizes","Count","City",
         "Production Status","Price","Received","Balance",
-        "Payment Status","Remarks","Order Entry Date"
+        "Remarks","Order Entry Date"
     ])
 
-# =====================================================
-# RESET LOGIC
-# =====================================================
-
-if "form_reset" not in st.session_state:
-    st.session_state.form_reset = True
-
-if st.session_state.form_reset:
-    st.session_state.est_delivery = datetime.today()
-    st.session_state.order_entry_date = datetime.today()
-    st.session_state.name_customer = ""
-    st.session_state.addon = "-- Select --"
-    st.session_state.jacket_type = "-- Select --"
-    st.session_state.male = 40
-    st.session_state.female = 36
-    st.session_state.single = 40
-    st.session_state.count = 1
-    st.session_state.city = ""
-    st.session_state.production_status = "-- Select --"
-    st.session_state.price = 0
-    st.session_state.received = 0
-    st.session_state.remarks = ""
-    st.session_state.form_reset = False
-
-# =====================================================
-# ADD ORDER
-# =====================================================
+# ==========================================
+# ADD ORDER FORM
+# ==========================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
-est_delivery = st.date_input("Est Delivery", key="est_delivery")
-order_entry_date = st.date_input("Order Entry Date", key="order_entry_date")
+with st.form("order_form", clear_on_submit=True):
 
-name_customer = st.text_input("Customer Name", key="name_customer")
+    est_delivery = st.text_input("Est Delivery (DD-MM-YYYY)")
+    name_customer = st.text_input("Customer Name")
 
-addon = st.selectbox(
-    "Add-on",
-    ["-- Select --"] + ADDON_OPTIONS,
-    key="addon"
-)
+    addon = st.selectbox("Add-on", ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"])
+    jacket_type = st.selectbox("Jacket Type", ["-- Select --","Couple (M + F)","Single","Custom / More than 2"])
 
-jacket_type = st.selectbox(
-    "Jacket Type",
-    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
-    key="jacket_type"
-)
+    sizes_value = ""
 
-sizes_value = ""
+    if jacket_type == "Couple (M + F)":
+        male = st.text_input("Male Size")
+        female = st.text_input("Female Size")
+        if male and female:
+            sizes_value = f"{male}M | {female}F"
 
-# 🔥 DYNAMIC SIZE WITH NUMBER INPUT
+    elif jacket_type == "Single":
+        single = st.text_input("Size")
+        if single:
+            sizes_value = single
 
-if jacket_type == "Couple (M + F)":
-    col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", min_value=30, max_value=60, step=1, key="male")
-    female = col2.number_input("Female Size", min_value=30, max_value=60, step=1, key="female")
-    sizes_value = f"{male}M | {female}F"
+    elif jacket_type == "Custom / More than 2":
+        sizes_value = "Read Chat"
 
-elif jacket_type == "Single":
-    single = st.number_input("Size", min_value=30, max_value=60, step=1, key="single")
-    sizes_value = str(single)
+    count = st.text_input("Count")
+    city = st.text_input("City")
 
-elif jacket_type == "Custom / More than 2":
-    st.info("Sizes automatically set as Read Chat")
-    sizes_value = "Read Chat"
+    production_status = st.selectbox(
+        "Production Status",
+        ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+    )
 
-count = st.number_input("Count", min_value=1, step=1, key="count")
+    price = st.text_input("Price")
+    received = st.text_input("Received")
+    remarks = st.text_area("Remarks")
 
-city = st.text_input("City", key="city")
+    submitted = st.form_submit_button("Add Order")
 
-production_status = st.selectbox(
-    "Production Status",
-    ["-- Select --"] + PRODUCTION_OPTIONS,
-    key="production_status"
-)
-
-price = st.number_input("Price", min_value=0, step=100, key="price")
-received = st.number_input("Received", min_value=0, step=100, key="received")
-
-balance = price - received
-payment_status = "Paid" if balance == 0 else "Pending"
-
-remarks = st.text_area("Remarks", key="remarks")
-
-if st.button("Add Order"):
+if submitted:
 
     if (
+        not est_delivery or
         not name_customer or
         addon == "-- Select --" or
         jacket_type == "-- Select --" or
@@ -180,33 +156,38 @@ if st.button("Add Order"):
         st.error("Please fill mandatory fields.")
         st.stop()
 
+    try:
+        est_date_parsed = datetime.strptime(est_delivery, "%d-%m-%Y")
+    except:
+        st.error("Date must be DD-MM-YYYY format.")
+        st.stop()
+
+    price_val = float(price) if price else 0
+    received_val = float(received) if received else 0
+    balance = price_val - received_val
+
     new_row = {
-        "Est Delivery": est_delivery,
+        "Est Delivery": est_date_parsed,
         "Name": name_customer,
         "Add-on": addon,
-        "Sizes": sizes_value,
-        "Count": count,
+        "Sizes": sizes_value if sizes_value else "-",
+        "Count": count if count else "-",
         "City": city if city else "-",
         "Production Status": production_status,
-        "Price": price,
-        "Received": received,
+        "Price": price_val,
+        "Received": received_val,
         "Balance": balance,
-        "Payment Status": payment_status,
         "Remarks": remarks if remarks else "-",
-        "Order Entry Date": order_entry_date
+        "Order Entry Date": datetime.today()
     }
 
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(FILE_NAME, index=False)
-
     st.success("Order Added Successfully!")
 
-    st.session_state.form_reset = True
-    st.rerun()
-
-# =====================================================
+# ==========================================
 # ALL ORDERS
-# =====================================================
+# ==========================================
 
 st.subheader("📋 All Orders")
 
@@ -217,14 +198,66 @@ if not df.empty:
     df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"]).dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = pd.to_datetime(df_display["Order Entry Date"]).dt.strftime("%d-%m-%Y")
 
+    df_display["Payment Status"] = df_display.apply(
+        lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
+    )
+
+    df_display = df_display.fillna("-").replace("", "-")
+
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    df_display.columns = [
-        "Est Dt","Name","Add-on","Sizes","Qty","City",
-        "Prod Status","Price","Received","Balance",
-        "Pay Status","Remarks","Entry Dt"
-    ]
+    # Bold header
+    st.markdown("""
+        <style>
+        .stDataFrame thead th {
+            font-weight: bold !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-    st.dataframe(df_display, use_container_width=True)
+    st.dataframe(
+        df_display,
+        use_container_width=True,
+        column_config={
+            "Name": st.column_config.Column(width="large"),
+            "Production Status": st.column_config.Column(width="large"),
+            "Remarks": st.column_config.Column(width="large"),
+        }
+    )
+
+    idx = st.selectbox(
+        "Delete Order",
+        df_display.index,
+        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
+    )
+
+    if st.button("Delete Selected Order"):
+        df = df.drop(idx).reset_index(drop=True)
+        df.to_csv(FILE_NAME, index=False)
+        st.success("Deleted")
+
+    st.download_button(
+        "📥 Download CSV",
+        df_display.to_csv(index=False).encode(),
+        "dresskraft_orders.csv"
+    )
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+    data = [df_display.columns.tolist()] + df_display.values.tolist()
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,0),colors.grey),
+        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+        ('GRID',(0,0),(-1,-1),0.25,colors.grey),
+        ('FONTSIZE',(0,0),(-1,-1),6),
+    ]))
+    doc.build([table])
+
+    st.download_button(
+        "📄 Download PDF",
+        buffer.getvalue(),
+        "dresskraft_orders.pdf"
+    )
