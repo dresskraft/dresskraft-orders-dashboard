@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
 import streamlit_authenticator as stauth
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
@@ -35,10 +34,11 @@ authenticator = stauth.Authenticate(
     credentials,
     "dresskraft_dashboard_cookie",
     "super_secret_key_123",
-    cookie_expiry_days=1   # 24 hours login
+    cookie_expiry_days=1  # 24 hours login
 )
 
-name, authentication_status, username = authenticator.login("Login", "main")
+# IMPORTANT: use "unrendered"
+name, authentication_status, username = authenticator.login(location="unrendered")
 
 if authentication_status is False:
     st.error("Incorrect Username or Password")
