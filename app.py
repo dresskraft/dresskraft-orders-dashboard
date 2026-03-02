@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import os
 import extra_streamlit_components as stx
@@ -11,21 +11,15 @@ from reportlab.lib.pagesizes import landscape, A4
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ==========================================
-# HELPER FUNCTION
+# HELPERS
 # ==========================================
 
 def format_indian(number):
-    if pd.isna(number) or number == "":
+    if pd.isna(number):
         return "-"
     return "{:,}".format(int(round(float(number))))
 
 def payment_status_logic(price, received):
-    try:
-        price = float(price)
-        received = float(received)
-    except:
-        return "-"
-
     if price == 0:
         return "-"
     if received == 0:
@@ -100,7 +94,7 @@ else:
     ])
 
 # ==========================================
-# ADD ORDER FORM
+# ADD ORDER FORM (Calendar + Proper Reset)
 # ==========================================
 
 st.title("📦 DressKraft Orders Dashboard")
@@ -108,29 +102,35 @@ st.subheader("➕ Add Order")
 
 with st.form("order_form", clear_on_submit=True):
 
-    est_delivery = st.text_input("Est Delivery (DD-MM-YYYY)")
+    est_delivery = st.date_input("Est Delivery")
     name_customer = st.text_input("Customer Name")
 
-    addon = st.selectbox("Add-on", ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"])
-    jacket_type = st.selectbox("Jacket Type", ["-- Select --","Couple (M + F)","Single","Custom / More than 2"])
+    addon = st.selectbox(
+        "Add-on",
+        ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
+    )
 
-    sizes_value = ""
+    jacket_type = st.selectbox(
+        "Jacket Type",
+        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+    )
+
+    sizes_value = "-"
 
     if jacket_type == "Couple (M + F)":
-        male = st.text_input("Male Size")
-        female = st.text_input("Female Size")
-        if male and female:
-            sizes_value = f"{male}M | {female}F"
+        col1, col2 = st.columns(2)
+        male = col1.number_input("Male Size", min_value=30, max_value=60, value=44)
+        female = col2.number_input("Female Size", min_value=30, max_value=60, value=38)
+        sizes_value = f"{male}M | {female}F"
 
     elif jacket_type == "Single":
-        single = st.text_input("Size")
-        if single:
-            sizes_value = single
+        single = st.number_input("Size", min_value=30, max_value=60, value=38)
+        sizes_value = str(single)
 
     elif jacket_type == "Custom / More than 2":
         sizes_value = "Read Chat"
 
-    count = st.text_input("Count")
+    count = st.number_input("Count", min_value=1, value=1)
     city = st.text_input("City")
 
     production_status = st.selectbox(
@@ -138,8 +138,8 @@ with st.form("order_form", clear_on_submit=True):
         ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
     )
 
-    price = st.text_input("Price")
-    received = st.text_input("Received")
+    price = st.number_input("Price", min_value=0.0, value=0.0)
+    received = st.number_input("Received", min_value=0.0, value=0.0)
     remarks = st.text_area("Remarks")
 
     submitted = st.form_submit_button("Add Order")
@@ -147,7 +147,6 @@ with st.form("order_form", clear_on_submit=True):
 if submitted:
 
     if (
-        not est_delivery or
         not name_customer or
         addon == "-- Select --" or
         jacket_type == "-- Select --" or
@@ -156,26 +155,18 @@ if submitted:
         st.error("Please fill mandatory fields.")
         st.stop()
 
-    try:
-        est_date_parsed = datetime.strptime(est_delivery, "%d-%m-%Y")
-    except:
-        st.error("Date must be DD-MM-YYYY format.")
-        st.stop()
-
-    price_val = float(price) if price else 0
-    received_val = float(received) if received else 0
-    balance = price_val - received_val
+    balance = price - received
 
     new_row = {
-        "Est Delivery": est_date_parsed,
+        "Est Delivery": est_delivery,
         "Name": name_customer,
         "Add-on": addon,
-        "Sizes": sizes_value if sizes_value else "-",
-        "Count": count if count else "-",
+        "Sizes": sizes_value,
+        "Count": count,
         "City": city if city else "-",
         "Production Status": production_status,
-        "Price": price_val,
-        "Received": received_val,
+        "Price": price,
+        "Received": received,
         "Balance": balance,
         "Remarks": remarks if remarks else "-",
         "Order Entry Date": datetime.today()
@@ -195,20 +186,19 @@ if not df.empty:
 
     df_display = df.copy()
 
-    df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"]).dt.strftime("%d-%m-%Y")
-    df_display["Order Entry Date"] = pd.to_datetime(df_display["Order Entry Date"]).dt.strftime("%d-%m-%Y")
-
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    df_display = df_display.fillna("-").replace("", "-")
+    df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"]).dt.strftime("%d-%m-%Y")
+    df_display["Order Entry Date"] = pd.to_datetime(df_display["Order Entry Date"]).dt.strftime("%d-%m-%Y")
+
+    df_display = df_display.fillna("-")
 
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    # Bold header
     st.markdown("""
         <style>
         .stDataFrame thead th {
