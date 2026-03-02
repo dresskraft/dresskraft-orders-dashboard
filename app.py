@@ -14,14 +14,14 @@ from reportlab.lib.pagesizes import landscape, A4
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # =====================================================
-# HELPER FUNCTIONS
+# HELPER FUNCTION (Indian Format)
 # =====================================================
 
 def format_indian(number):
-    if pd.isna(number):
+    if pd.isna(number) or number == "":
         return "-"
     number = round(float(number))
-    return "{:,}".format(number).replace(",", "X").replace(".", ",").replace("X", ",")
+    return "{:,}".format(number)
 
 # =====================================================
 # LOGIN SYSTEM
@@ -103,23 +103,11 @@ df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().norm
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
 
 # =====================================================
-# EDIT MODE
+# ADD ORDER FORM
 # =====================================================
-
-if "edit_index" not in st.session_state:
-    st.session_state.edit_index = None
 
 st.title("📦 DressKraft Orders Dashboard")
-st.subheader("➕ Add / Edit Order")
-
-if st.session_state.edit_index is not None:
-    row = df.loc[st.session_state.edit_index]
-else:
-    row = None
-
-# =====================================================
-# FORM
-# =====================================================
+st.subheader("➕ Add Order")
 
 est_delivery = st.date_input("Est Delivery", datetime.today())
 name_customer = st.text_input("Customer Name", "")
@@ -149,9 +137,7 @@ payment_status = "Paid" if balance == 0 else "Pending"
 
 remarks = st.text_area("Remarks", "")
 
-submit = st.button("Add Order")
-
-if submit:
+if st.button("Add Order"):
 
     new_row = {
         "Est Delivery": pd.to_datetime(est_delivery),
@@ -173,9 +159,6 @@ if submit:
     df.to_csv(FILE_NAME, index=False)
 
     st.success("Saved Successfully!")
-
-    # RESET FORM
-    st.session_state.clear()
     time.sleep(1)
     st.rerun()
 
@@ -192,31 +175,22 @@ if not df.empty:
     df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
 
-    # Replace blanks with "-"
-    df_display = df_display.fillna("-")
-    df_display = df_display.replace("", "-")
+    df_display = df_display.fillna("-").replace("", "-")
 
-    # Format numbers Indian style
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    # Short column names
     df_display.columns = [
         "Est Dt", "Name", "Add-on", "Sizes", "Qty",
         "City", "Prod Status", "Price", "Received",
         "Balance", "Pay Status", "Remarks", "Entry Dt"
     ]
 
-    # Reduce font size + center header
     st.markdown("""
         <style>
-        .stDataFrame div {
-            font-size: 13px;
-        }
-        .stDataFrame thead th {
-            text-align: center !important;
-        }
+        .stDataFrame div { font-size: 13px; }
+        .stDataFrame thead th { text-align: center !important; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -241,7 +215,7 @@ if not df.empty:
     csv = df_display.to_csv(index=False).encode("utf-8")
     st.download_button("📥 Download CSV", csv, "dresskraft_orders.csv", "text/csv")
 
-    # PDF DOWNLOAD (Landscape)
+    # PDF DOWNLOAD
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
 
