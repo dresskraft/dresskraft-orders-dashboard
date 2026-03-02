@@ -10,9 +10,9 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ==========================================
+# =====================================================
 # HELPERS
-# ==========================================
+# =====================================================
 
 def format_indian(number):
     if pd.isna(number):
@@ -30,9 +30,9 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ==========================================
+# =====================================================
 # LOGIN SYSTEM
-# ==========================================
+# =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
@@ -78,9 +78,9 @@ if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# ==========================================
+# =====================================================
 # DATA
-# ==========================================
+# =====================================================
 
 FILE_NAME = "orders.csv"
 
@@ -93,9 +93,9 @@ else:
         "Remarks","Order Entry Date"
     ])
 
-# ==========================================
-# ADD ORDER FORM (Calendar + Proper Reset)
-# ==========================================
+# =====================================================
+# ADD ORDER FORM
+# =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
@@ -119,15 +119,16 @@ with st.form("order_form", clear_on_submit=True):
 
     if jacket_type == "Couple (M + F)":
         col1, col2 = st.columns(2)
-        male = col1.number_input("Male Size", min_value=30, max_value=60, value=44)
-        female = col2.number_input("Female Size", min_value=30, max_value=60, value=38)
+        male = col1.number_input("Male Size", 30, 60, value=44)
+        female = col2.number_input("Female Size", 30, 60, value=38)
         sizes_value = f"{male}M | {female}F"
 
     elif jacket_type == "Single":
-        single = st.number_input("Size", min_value=30, max_value=60, value=38)
+        single = st.number_input("Size", 30, 60, value=38)
         sizes_value = str(single)
 
     elif jacket_type == "Custom / More than 2":
+        st.info("For more than 2 jackets, size marked as 'Read Chat'")
         sizes_value = "Read Chat"
 
     count = st.number_input("Count", min_value=1, value=1)
@@ -174,11 +175,12 @@ if submitted:
 
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(FILE_NAME, index=False)
+
     st.success("Order Added Successfully!")
 
-# ==========================================
+# =====================================================
 # ALL ORDERS
-# ==========================================
+# =====================================================
 
 st.subheader("📋 All Orders")
 
