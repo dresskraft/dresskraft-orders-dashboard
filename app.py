@@ -1,21 +1,13 @@
 import streamlit as st
 import pandas as pd
 import os
-import time
 from datetime import datetime
-
-# -------- PASSWORD PROTECTION (24 HOURS) --------
+# -------- SIMPLE PASSWORD PROTECTION --------
 PASSWORD = "Diksha@1999"
-COOKIE_DURATION = 60 * 60 * 24  # 24 hours
 
 def check_password():
-    if "login_time" in st.session_state:
-        if time.time() - st.session_state["login_time"] < COOKIE_DURATION:
-            return True
-
     def password_entered():
         if st.session_state["password"] == PASSWORD:
-            st.session_state["login_time"] = time.time()
             st.session_state["password_correct"] = True
         else:
             st.session_state["password_correct"] = False
