@@ -9,24 +9,14 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 # LOGIN CONFIG
 # ==========================
 
-# Pre-generated hashed password for: Diksha@1999
-# Same password for all users
+# Hashed password for: Diksha@1999
 hashed_password = "$2b$12$KIXQnL6z2bB6wQe1G9z5ZeZ0eV0pY2k0M1Hj1qZkVvK8gZxJrY9bS"
 
 credentials = {
     "usernames": {
-        "srinath": {
-            "name": "Srinath",
-            "password": hashed_password
-        },
-        "diksha": {
-            "name": "Diksha",
-            "password": hashed_password
-        },
-        "megha": {
-            "name": "Megha",
-            "password": hashed_password
-        }
+        "srinath": {"name": "Srinath", "password": hashed_password},
+        "diksha": {"name": "Diksha", "password": hashed_password},
+        "megha": {"name": "Megha", "password": hashed_password},
     }
 }
 
@@ -34,18 +24,18 @@ authenticator = stauth.Authenticate(
     credentials,
     "dresskraft_dashboard_cookie",
     "super_secret_key_123",
-    cookie_expiry_days=1  # 24 hours login
+    cookie_expiry_days=1,
 )
 
-# IMPORTANT: use "unrendered"
-name, authentication_status, username = authenticator.login(location="unrendered")
+# ✅ Render login in sidebar (IMPORTANT)
+name, authentication_status, username = authenticator.login("Login", "sidebar")
 
 if authentication_status is False:
     st.error("Incorrect Username or Password")
     st.stop()
 
 if authentication_status is None:
-    st.warning("Please enter your credentials")
+    st.warning("Please login from sidebar")
     st.stop()
 
 authenticator.logout("Logout", "sidebar")
