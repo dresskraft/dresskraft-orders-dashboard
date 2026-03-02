@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import os
 import time
@@ -18,13 +18,13 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 # =====================================================
 
 def format_indian(number):
-    if pd.isna(number) or number == "":
+    if pd.isna(number) or number == "" or number == "-":
         return "-"
     number = round(float(number))
     return "{:,}".format(number)
 
 # =====================================================
-# LOGIN SYSTEM (24 HOURS)
+# LOGIN SYSTEM
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
@@ -103,65 +103,90 @@ df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().norm
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
 
 # =====================================================
-# ADD ORDER FORM (WITH PROPER RESET)
+# ADD ORDER FORM (BLANK INITIALLY)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
-est_delivery = st.date_input("Est Delivery", datetime.today(), key="est_delivery")
+est_delivery = st.date_input("Est Delivery", value=None, key="est_delivery")
 name_customer = st.text_input("Customer Name", "", key="name_customer")
-addon = st.selectbox("Add-on", ADDON_OPTIONS, key="addon")
+
+addon = st.selectbox(
+    "Add-on",
+    ["-- Select --"] + ADDON_OPTIONS,
+    key="addon"
+)
 
 jacket_type = st.selectbox(
     "Jacket Type",
-    ["Couple (M + F)", "Single", "Custom / More than 2"],
+    ["-- Select --", "Couple (M + F)", "Single", "Custom / More than 2"],
     key="jacket_type"
 )
 
+sizes_value = None
+
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, 44, key="male_size")
-    female = col2.number_input("Female Size", 30, 60, 38, key="female_size")
-    sizes_value = f"{int(male)}M | {int(female)}F"
+    male = col1.number_input("Male Size", 30, 60, value=None, key="male_size")
+    female = col2.number_input("Female Size", 30, 60, value=None, key="female_size")
+    if male and female:
+        sizes_value = f"{int(male)}M | {int(female)}F"
+
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, 38, key="single_size")
-    sizes_value = str(int(single))
-else:
+    single = st.number_input("Size", 30, 60, value=None, key="single_size")
+    if single:
+        sizes_value = str(int(single))
+
+elif jacket_type == "Custom / More than 2":
     sizes_value = "Read Chat"
 
-count = st.number_input("Count", min_value=1, value=1, key="count")
+count = st.number_input("Count", min_value=1, value=None, key="count")
 city = st.text_input("City", "", key="city")
 
 production_status = st.selectbox(
     "Production Status",
-    PRODUCTION_OPTIONS,
+    ["-- Select --"] + PRODUCTION_OPTIONS,
     key="production_status"
 )
 
-price = st.number_input("Price", min_value=0.0, value=0.0, key="price")
-received = st.number_input("Received", min_value=0.0, value=0.0, key="received")
+price = st.number_input("Price", min_value=0.0, value=None, key="price")
+received = st.number_input("Received", min_value=0.0, value=None, key="received")
 
-balance = price - received
-payment_status = "Paid" if balance == 0 else "Pending"
+balance = 0
+payment_status = "-"
+
+if price is not None and received is not None:
+    balance = price - received
+    payment_status = "Paid" if balance == 0 else "Pending"
 
 remarks = st.text_area("Remarks", "", key="remarks")
 
 if st.button("Add Order"):
 
+    if (
+        est_delivery is None or
+        name_customer.strip() == "" or
+        addon == "-- Select --" or
+        jacket_type == "-- Select --" or
+        production_status == "-- Select --"
+    ):
+        st.error("Please fill all mandatory fields")
+        st.stop()
+
     new_row = {
         "Est Delivery": pd.to_datetime(est_delivery),
         "Name": name_customer,
         "Add-on": addon,
-        "Sizes": sizes_value,
-        "Count": count,
-        "City": city,
+        "Sizes": sizes_value if sizes_value else "-",
+        "Count": count if count else "-",
+        "City": city if city else "-",
         "Production Status": production_status,
-        "Price": round(price),
-        "Received": round(received),
+        "Price": round(price) if price else 0,
+        "Received": round(received) if received else 0,
         "Balance": round(balance),
         "Payment Status": payment_status,
-        "Remarks": remarks,
+        "Remarks": remarks if remarks else "-",
         "Order Entry Date": pd.Timestamp.today().normalize()
     }
 
@@ -170,14 +195,9 @@ if st.button("Add Order"):
 
     st.success("Saved Successfully!")
 
-    # Reset only form fields (NOT login state)
-    for key in [
-        "est_delivery", "name_customer", "addon",
-        "jacket_type", "male_size", "female_size",
-        "single_size", "count", "city",
-        "production_status", "price", "received", "remarks"
-    ]:
-        if key in st.session_state:
+    # Reset form fields only
+    for key in list(st.session_state.keys()):
+        if key not in ["logged_in", "username"]:
             del st.session_state[key]
 
     time.sleep(1)
