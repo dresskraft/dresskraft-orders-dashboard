@@ -101,11 +101,10 @@ for col in required_columns:
     if col not in df.columns:
         df[col] = ""
 
-# Fix dates safely
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
 
-# Only fix missing Order Entry Date (old rows)
+# Fix old missing Order Entry Date only
 df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().normalize())
 
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
@@ -125,123 +124,133 @@ if st.session_state.edit_index is not None:
 else:
     row = None
 
-with st.form("order_form"):
+# =====================================================
+# LIVE FORM (NO st.form so jacket type updates instantly)
+# =====================================================
 
-    est_delivery = st.date_input(
-        "Est Delivery",
-        value=row["Est Delivery"] if row is not None and pd.notna(row["Est Delivery"]) else datetime.today()
-    )
+est_delivery = st.date_input(
+    "Est Delivery",
+    value=row["Est Delivery"] if row is not None and pd.notna(row["Est Delivery"]) else datetime.today()
+)
 
-    name_customer = st.text_input("Customer Name", value=row["Name"] if row is not None else "")
+name_customer = st.text_input(
+    "Customer Name",
+    value=row["Name"] if row is not None else ""
+)
 
-    addon = st.selectbox(
-        "Add-on",
-        ADDON_OPTIONS,
-        index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
-    )
+addon = st.selectbox(
+    "Add-on",
+    ADDON_OPTIONS,
+    index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
+)
 
-    # =========================
-    # STRUCTURED SIZE MODE
-    # =========================
+# =========================
+# STRUCTURED SIZE MODE (LIVE)
+# =========================
 
-    jacket_type = st.selectbox(
-        "Jacket Type",
-        ["Couple (M + F)", "Single", "Custom / More than 2"]
-    )
+jacket_type = st.selectbox(
+    "Jacket Type",
+    ["Couple (M + F)", "Single", "Custom / More than 2"]
+)
 
-    if jacket_type == "Couple (M + F)":
-        col1, col2 = st.columns(2)
-        male_size = col1.number_input("Male Size", min_value=30, max_value=60, value=44)
-        female_size = col2.number_input("Female Size", min_value=30, max_value=60, value=38)
-        sizes_value = f"{int(male_size)}M | {int(female_size)}F"
+if jacket_type == "Couple (M + F)":
+    col1, col2 = st.columns(2)
+    male_size = col1.number_input("Male Size", min_value=30, max_value=60, value=44)
+    female_size = col2.number_input("Female Size", min_value=30, max_value=60, value=38)
+    sizes_value = f"{int(male_size)}M | {int(female_size)}F"
 
-    elif jacket_type == "Single":
-        single_size = st.number_input("Size", min_value=30, max_value=60, value=38)
-        sizes_value = str(int(single_size))
+elif jacket_type == "Single":
+    single_size = st.number_input("Size", min_value=30, max_value=60, value=38)
+    sizes_value = str(int(single_size))
 
-    else:
-        st.info("Size will be stored as 'Read Chat'")
-        sizes_value = "Read Chat"
+else:
+    st.info("Size will be stored as 'Read Chat'")
+    sizes_value = "Read Chat"
 
-    count = st.number_input(
-        "Count",
-        min_value=1,
-        value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1
-    )
+count = st.number_input(
+    "Count",
+    min_value=1,
+    value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1
+)
 
-    city = st.text_input("City", value=row["City"] if row is not None else "")
+city = st.text_input(
+    "City",
+    value=row["City"] if row is not None else ""
+)
 
-    production_status = st.selectbox(
-        "Production Status",
-        PRODUCTION_OPTIONS,
-        index=PRODUCTION_OPTIONS.index(row["Production Status"]) if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
-    )
+production_status = st.selectbox(
+    "Production Status",
+    PRODUCTION_OPTIONS,
+    index=PRODUCTION_OPTIONS.index(row["Production Status"]) if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
+)
 
-    price = st.number_input(
-        "Price",
-        min_value=0.0,
-        value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0
-    )
+price = st.number_input(
+    "Price",
+    min_value=0.0,
+    value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0
+)
 
-    received = st.number_input(
-        "Received",
-        min_value=0.0,
-        value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0
-    )
+received = st.number_input(
+    "Received",
+    min_value=0.0,
+    value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0
+)
 
-    balance = price - received
-    payment_status = "Paid" if balance == 0 else "Pending"
+balance = price - received
+payment_status = "Paid" if balance == 0 else "Pending"
 
-    remarks = st.text_area("Remarks", value=row["Remarks"] if row is not None else "")
+remarks = st.text_area(
+    "Remarks",
+    value=row["Remarks"] if row is not None else ""
+)
+
+if st.session_state.edit_index is None:
+    submit = st.button("Add Order")
+else:
+    submit = st.button("Update Order")
+
+if submit:
+
+    if est_delivery is None:
+        st.error("Est Delivery is required")
+        st.stop()
 
     if st.session_state.edit_index is None:
-        submit = st.form_submit_button("Add Order")
+        new_row = {
+            "Est Delivery": est_delivery,
+            "Name": name_customer,
+            "Add-on": addon,
+            "Sizes": sizes_value,
+            "Count": count,
+            "City": city,
+            "Production Status": production_status,
+            "Price": price,
+            "Received": received,
+            "Balance": balance,
+            "Payment Status": payment_status,
+            "Remarks": remarks,
+            "Order Entry Date": datetime.today().date()
+        }
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
     else:
-        submit = st.form_submit_button("Update Order")
+        df.loc[st.session_state.edit_index, [
+            "Est Delivery", "Name", "Add-on", "Sizes",
+            "Count", "City", "Production Status",
+            "Price", "Received", "Balance",
+            "Payment Status", "Remarks"
+        ]] = [
+            est_delivery, name_customer, addon, sizes_value,
+            count, city, production_status,
+            price, received, balance,
+            payment_status, remarks
+        ]
+        st.session_state.edit_index = None
 
-    if submit:
-
-        # Ensure Est Delivery selected
-        if est_delivery is None:
-            st.error("Est Delivery is required")
-            st.stop()
-
-        if st.session_state.edit_index is None:
-            new_row = {
-                "Est Delivery": est_delivery,
-                "Name": name_customer,
-                "Add-on": addon,
-                "Sizes": sizes_value,
-                "Count": count,
-                "City": city,
-                "Production Status": production_status,
-                "Price": price,
-                "Received": received,
-                "Balance": balance,
-                "Payment Status": payment_status,
-                "Remarks": remarks,
-                "Order Entry Date": datetime.today().date()
-            }
-            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-
-        else:
-            df.loc[st.session_state.edit_index, [
-                "Est Delivery", "Name", "Add-on", "Sizes",
-                "Count", "City", "Production Status",
-                "Price", "Received", "Balance",
-                "Payment Status", "Remarks"
-            ]] = [
-                est_delivery, name_customer, addon, sizes_value,
-                count, city, production_status,
-                price, received, balance,
-                payment_status, remarks
-            ]
-            st.session_state.edit_index = None
-
-        df.to_csv(FILE_NAME, index=False)
-        st.success("Saved Successfully!")
-        time.sleep(1)
-        st.rerun()
+    df.to_csv(FILE_NAME, index=False)
+    st.success("Saved Successfully!")
+    time.sleep(1)
+    st.rerun()
 
 # =====================================================
 # DISPLAY TABLE
