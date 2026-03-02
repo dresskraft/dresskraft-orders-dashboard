@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
 import time
+from datetime import datetime
 from streamlit_cookies_manager import EncryptedCookieManager
 
-# ---------- COOKIE SETUP ----------
+# ==============================
+# COOKIE SETUP (24 Hour Login)
+# ==============================
+
 cookies = EncryptedCookieManager(
     prefix="dresskraft_",
     password="super_secret_cookie_key"
@@ -17,12 +20,16 @@ if not cookies.ready():
 PASSWORD = "Diksha@1999"
 COOKIE_DURATION = 60 * 60 * 24  # 24 hours
 
+
 def check_password():
+    # If cookie exists and not expired
     if "login_time" in cookies:
-        if time.time() - float(cookies["login_time"]) < COOKIE_DURATION:
+        login_time = float(cookies["login_time"])
+        if time.time() - login_time < COOKIE_DURATION:
             return True
 
-    password = st.text_input("Enter Password", type="password")
+    # Show password input
+    password = st.text_input("Enter Password", type="password", key="password_input")
 
     if password == PASSWORD:
         cookies["login_time"] = str(time.time())
@@ -31,8 +38,16 @@ def check_password():
 
     return False
 
+
 if not check_password():
     st.stop()
+
+# ==============================
+# DASHBOARD STARTS HERE
+# ==============================
+
+st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
+st.title("📦 DressKraft Orders Dashboard")
 
 FILE_NAME = "orders.csv"
 
@@ -41,12 +56,21 @@ if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
 else:
     df = pd.DataFrame(columns=[
-        "Est Delivery","Name","Add-on","Sizes","Type",
-        "Count","City","Production Status",
-        "Price","Received","Balance","Payment Status"
+        "Est Delivery",
+        "Name",
+        "Add-on",
+        "Sizes",
+        "Count",
+        "City",
+        "Production Status",
+        "Price",
+        "Received",
+        "Balance",
+        "Payment Status"
     ])
 
 # ===== Dashboard Metrics =====
+
 st.subheader("📊 Overview")
 
 total_orders = len(df)
@@ -64,73 +88,47 @@ col4.metric("Total Balance", total_balance)
 
 st.divider()
 
-# ===== Add New Order Form =====
+# ===== Add New Order =====
+
 st.subheader("➕ Add New Order")
 
 with st.form("order_form"):
-    est_delivery = st.date_input("Estimated Delivery", datetime.today())
+    est_delivery = st.date_input("Est Delivery")
     name = st.text_input("Customer Name")
+    addon = st.text_input("Add-on")
+    sizes = st.text_input("Sizes")
+    count = st.number_input("Count", min_value=1)
+    city = st.text_input("City")
+    production_status = st.selectbox("Production Status", ["Pending", "In Progress", "Completed"])
+    price = st.number_input("Price", min_value=0.0)
+    received = st.number_input("Received", min_value=0.0)
 
-    addon = st.selectbox("Add-on", [
-        "No add on","Pearls","Studs","Pearl + Stud","Read Chat"
-    ])
+    balance = price - received
+    payment_status = "Paid" if balance == 0 else "Pending"
 
-    sizes = st.text_input("Sizes (Example: 42M | 40F)")
-    
-    type_ = st.selectbox("Type", ["LED","Non-LED","Patch"])
-
-    count = st.number_input("Count", min_value=1, step=1)
-
-    city = st.text_input("Delivery City")
-
-    prod_status = st.selectbox("Production Status", [
-        "To Start","Ongoing","Printing","Shipped","Delivered"
-    ])
-
-    price = st.number_input("Price", min_value=0)
-
-    received = st.number_input("Received", min_value=0)
-
-    payment_status = st.selectbox("Payment Status", [
-        "Payment Pending","Partial","Paid"
-    ])
-
-    submitted = st.form_submit_button("Save Order")
+    submitted = st.form_submit_button("Add Order")
 
     if submitted:
-        balance = price - received
-
-        new_data = {
+        new_row = {
             "Est Delivery": est_delivery,
             "Name": name,
             "Add-on": addon,
             "Sizes": sizes,
-            "Type": type_,
             "Count": count,
             "City": city,
-            "Production Status": prod_status,
+            "Production Status": production_status,
             "Price": price,
             "Received": received,
             "Balance": balance,
             "Payment Status": payment_status
         }
 
-        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         df.to_csv(FILE_NAME, index=False)
-        st.success("Order Saved Successfully!")
+        st.success("Order Added Successfully!")
+        st.rerun()
 
-st.divider()
+# ===== Orders Table =====
 
-# ===== Filter Section =====
-st.subheader("🔍 Filter Orders")
-
-status_filter = st.selectbox("Filter by Production Status", ["All"] + list(df["Production Status"].unique()) if not df.empty else ["All"])
-
-if status_filter != "All":
-    filtered_df = df[df["Production Status"] == status_filter]
-else:
-    filtered_df = df
-
-# ===== Display Orders =====
 st.subheader("📋 All Orders")
-st.dataframe(filtered_df, use_container_width=True)
+st.dataframe(df, use_container_width=True)
