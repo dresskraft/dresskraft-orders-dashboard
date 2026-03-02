@@ -16,11 +16,9 @@ PASSWORD = "Diksha@1999"
 
 cookie_manager = stx.CookieManager()
 
-# Initialize session
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# Check cookie
 login_cookie = cookie_manager.get("dresskraft_login")
 
 if login_cookie:
@@ -34,7 +32,6 @@ if login_cookie:
         cookie_manager.delete("dresskraft_login")
         st.session_state.logged_in = False
 
-# If not logged in → show login
 if not st.session_state.logged_in:
 
     st.title("🔐 Login")
@@ -63,10 +60,6 @@ if not st.session_state.logged_in:
 
     st.stop()
 
-# ==========================
-# LOGOUT BUTTON
-# ==========================
-
 st.sidebar.write(f"Welcome {st.session_state.username}")
 
 if st.sidebar.button("Logout"):
@@ -82,10 +75,12 @@ st.title("📦 DressKraft Orders Dashboard")
 
 FILE_NAME = "orders.csv"
 
+# Load or create dataframe
 if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
 else:
     df = pd.DataFrame(columns=[
+        "Order Entry Date",
         "Est Delivery",
         "Name",
         "Add-on",
@@ -99,26 +94,16 @@ else:
         "Payment Status"
     ])
 
+# Ensure date columns parsed correctly
+if not df.empty:
+    df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
+    df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
+
 # ==========================
-# OVERVIEW METRICS
+# SORT BY EST DELIVERY
 # ==========================
 
-st.subheader("📊 Overview")
-
-total_orders = len(df)
-total_revenue = df["Price"].sum() if not df.empty else 0
-total_received = df["Received"].sum() if not df.empty else 0
-total_balance = df["Balance"].sum() if not df.empty else 0
-
-col1, col2 = st.columns(2)
-col1.metric("Total Orders", total_orders)
-col2.metric("Total Revenue", total_revenue)
-
-col3, col4 = st.columns(2)
-col3.metric("Total Received", total_received)
-col4.metric("Total Balance", total_balance)
-
-st.divider()
+df = df.sort_values(by="Est Delivery", ascending=True)
 
 # ==========================
 # ADD NEW ORDER
@@ -147,6 +132,7 @@ with st.form("order_form"):
 
     if submitted:
         new_row = {
+            "Order Entry Date": datetime.today().date(),
             "Est Delivery": est_delivery,
             "Name": name_customer,
             "Add-on": addon,
@@ -168,8 +154,34 @@ with st.form("order_form"):
         st.rerun()
 
 # ==========================
-# SHOW ALL ORDERS
+# EDIT OPTION
 # ==========================
 
 st.subheader("📋 All Orders")
-st.dataframe(df, use_container_width=True)
+
+if not df.empty:
+
+    # Display formatted date
+    df_display = df.copy()
+    df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
+    df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
+
+    edited_df = st.data_editor(
+        df_display,
+        num_rows="dynamic",
+        use_container_width=True
+    )
+
+    if st.button("Save Changes"):
+        # Keep Order Entry Date locked (do not overwrite)
+        edited_df["Order Entry Date"] = df["Order Entry Date"]
+
+        # Convert Est Delivery back to datetime
+        edited_df["Est Delivery"] = pd.to_datetime(
+            edited_df["Est Delivery"], format="%d-%m-%Y", errors="coerce"
+        )
+
+        edited_df.to_csv(FILE_NAME, index=False)
+        st.success("Changes Saved!")
+        time.sleep(1)
+        st.rerun()
