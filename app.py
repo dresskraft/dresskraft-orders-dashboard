@@ -15,7 +15,7 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 # =====================================================
 
 def format_indian(number):
-    if pd.isna(number) or number == "":
+    if pd.isna(number):
         return "-"
     return "{:,}".format(int(round(float(number))))
 
@@ -86,31 +86,31 @@ else:
     ])
 
 # =====================================================
-# INITIALIZE BLANK STATE (FOR RESET)
+# RESET LOGIC
 # =====================================================
 
 if "form_reset" not in st.session_state:
     st.session_state.form_reset = True
 
 if st.session_state.form_reset:
-    st.session_state.est_delivery = None
+    st.session_state.est_delivery = datetime.today()
     st.session_state.order_entry_date = datetime.today()
     st.session_state.name_customer = ""
     st.session_state.addon = "-- Select --"
     st.session_state.jacket_type = "-- Select --"
-    st.session_state.male = ""
-    st.session_state.female = ""
-    st.session_state.single = ""
-    st.session_state.count = ""
+    st.session_state.male = 40
+    st.session_state.female = 36
+    st.session_state.single = 40
+    st.session_state.count = 1
     st.session_state.city = ""
     st.session_state.production_status = "-- Select --"
-    st.session_state.price = ""
-    st.session_state.received = ""
+    st.session_state.price = 0
+    st.session_state.received = 0
     st.session_state.remarks = ""
     st.session_state.form_reset = False
 
 # =====================================================
-# ADD ORDER (DYNAMIC + BLANK RESET)
+# ADD ORDER
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
@@ -135,26 +135,24 @@ jacket_type = st.selectbox(
 
 sizes_value = ""
 
-# 🔥 TRUE DYNAMIC SIZE LOGIC
+# 🔥 DYNAMIC SIZE WITH NUMBER INPUT
 
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.text_input("Male Size", key="male")
-    female = col2.text_input("Female Size", key="female")
-
-    if male and female:
-        sizes_value = f"{male}M | {female}F"
+    male = col1.number_input("Male Size", min_value=30, max_value=60, step=1, key="male")
+    female = col2.number_input("Female Size", min_value=30, max_value=60, step=1, key="female")
+    sizes_value = f"{male}M | {female}F"
 
 elif jacket_type == "Single":
-    single = st.text_input("Size", key="single")
-    if single:
-        sizes_value = single
+    single = st.number_input("Size", min_value=30, max_value=60, step=1, key="single")
+    sizes_value = str(single)
 
 elif jacket_type == "Custom / More than 2":
     st.info("Sizes automatically set as Read Chat")
     sizes_value = "Read Chat"
 
-count = st.text_input("Count", key="count")
+count = st.number_input("Count", min_value=1, step=1, key="count")
+
 city = st.text_input("City", key="city")
 
 production_status = st.selectbox(
@@ -163,8 +161,12 @@ production_status = st.selectbox(
     key="production_status"
 )
 
-price = st.text_input("Price", key="price")
-received = st.text_input("Received", key="received")
+price = st.number_input("Price", min_value=0, step=100, key="price")
+received = st.number_input("Received", min_value=0, step=100, key="received")
+
+balance = price - received
+payment_status = "Paid" if balance == 0 else "Pending"
+
 remarks = st.text_area("Remarks", key="remarks")
 
 if st.button("Add Order"):
@@ -178,21 +180,16 @@ if st.button("Add Order"):
         st.error("Please fill mandatory fields.")
         st.stop()
 
-    price_val = float(price) if price else 0
-    received_val = float(received) if received else 0
-    balance = price_val - received_val
-    payment_status = "Paid" if balance == 0 else "Pending"
-
     new_row = {
         "Est Delivery": est_delivery,
         "Name": name_customer,
         "Add-on": addon,
-        "Sizes": sizes_value if sizes_value else "-",
-        "Count": count if count else "-",
+        "Sizes": sizes_value,
+        "Count": count,
         "City": city if city else "-",
         "Production Status": production_status,
-        "Price": price_val,
-        "Received": received_val,
+        "Price": price,
+        "Received": received,
         "Balance": balance,
         "Payment Status": payment_status,
         "Remarks": remarks if remarks else "-",
@@ -204,7 +201,6 @@ if st.button("Add Order"):
 
     st.success("Order Added Successfully!")
 
-    # 🔥 PROPER RESET
     st.session_state.form_reset = True
     st.rerun()
 
@@ -221,8 +217,6 @@ if not df.empty:
     df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"]).dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = pd.to_datetime(df_display["Order Entry Date"]).dt.strftime("%d-%m-%Y")
 
-    df_display = df_display.fillna("-")
-
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
@@ -234,39 +228,3 @@ if not df.empty:
     ]
 
     st.dataframe(df_display, use_container_width=True)
-
-    idx = st.selectbox(
-        "Delete Order",
-        df_display.index,
-        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Dt']}"
-    )
-
-    if st.button("Delete Selected Order"):
-        df = df.drop(idx).reset_index(drop=True)
-        df.to_csv(FILE_NAME, index=False)
-        st.success("Deleted")
-        st.rerun()
-
-    st.download_button(
-        "📥 Download CSV",
-        df_display.to_csv(index=False).encode(),
-        "dresskraft_orders.csv"
-    )
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
-    data = [df_display.columns.tolist()] + df_display.values.tolist()
-    table = Table(data)
-    table.setStyle(TableStyle([
-        ('BACKGROUND',(0,0),(-1,0),colors.grey),
-        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
-        ('GRID',(0,0),(-1,-1),0.25,colors.grey),
-        ('FONTSIZE',(0,0),(-1,-1),6),
-    ]))
-    doc.build([table])
-
-    st.download_button(
-        "📄 Download PDF",
-        buffer.getvalue(),
-        "dresskraft_orders.pdf"
-    )
