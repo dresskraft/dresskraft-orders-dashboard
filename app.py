@@ -4,6 +4,12 @@ import os
 import time
 import extra_streamlit_components as stx
 from datetime import datetime, timedelta
+from io import BytesIO
+
+# PDF Imports
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
@@ -54,18 +60,17 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # =====================================================
-# DATA SECTION
+# DATA SETUP
 # =====================================================
 
 FILE_NAME = "orders.csv"
 
 ADDON_OPTIONS = [
+    "Pearls",
     "Studs",
     "Both Mix",
-    "No add on",
-    "Read Chat",
-    "Pearl + Stud",
-    "Pearls"
+    "No Add On",
+    "Read Chat"
 ]
 
 PRODUCTION_OPTIONS = [
@@ -103,8 +108,6 @@ for col in required_columns:
 
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
-
-# Fill only missing Order Entry Date (old rows)
 df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().normalize())
 
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
@@ -144,10 +147,6 @@ addon = st.selectbox(
     index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
 )
 
-# =========================
-# STRUCTURED SIZE MODE
-# =========================
-
 jacket_type = st.selectbox(
     "Jacket Type",
     ["Couple (M + F)", "Single", "Custom / More than 2"]
@@ -155,28 +154,18 @@ jacket_type = st.selectbox(
 
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male_size = col1.number_input("Male Size", min_value=30, max_value=60, value=44)
-    female_size = col2.number_input("Female Size", min_value=30, max_value=60, value=38)
+    male_size = col1.number_input("Male Size", 30, 60, 44)
+    female_size = col2.number_input("Female Size", 30, 60, 38)
     sizes_value = f"{int(male_size)}M | {int(female_size)}F"
-
 elif jacket_type == "Single":
-    single_size = st.number_input("Size", min_value=30, max_value=60, value=38)
+    single_size = st.number_input("Size", 30, 60, 38)
     sizes_value = str(int(single_size))
-
 else:
     st.info("Size will be stored as 'Read Chat'")
     sizes_value = "Read Chat"
 
-count = st.number_input(
-    "Count",
-    min_value=1,
-    value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1
-)
-
-city = st.text_input(
-    "City",
-    value=row["City"] if row is not None else ""
-)
+count = st.number_input("Count", min_value=1, value=1)
+city = st.text_input("City", value=row["City"] if row is not None else "")
 
 production_status = st.selectbox(
     "Production Status",
@@ -184,25 +173,12 @@ production_status = st.selectbox(
     index=PRODUCTION_OPTIONS.index(row["Production Status"]) if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
 )
 
-price = st.number_input(
-    "Price",
-    min_value=0.0,
-    value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0
-)
-
-received = st.number_input(
-    "Received",
-    min_value=0.0,
-    value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0
-)
-
+price = st.number_input("Price", min_value=0.0, value=0.0)
+received = st.number_input("Received", min_value=0.0, value=0.0)
 balance = price - received
 payment_status = "Paid" if balance == 0 else "Pending"
 
-remarks = st.text_area(
-    "Remarks",
-    value=row["Remarks"] if row is not None else ""
-)
+remarks = st.text_area("Remarks", value=row["Remarks"] if row is not None else "")
 
 if st.session_state.edit_index is None:
     submit = st.button("Add Order")
@@ -211,40 +187,26 @@ else:
 
 if submit:
 
-    if est_delivery is None:
-        st.error("Est Delivery is required")
-        st.stop()
+    new_row = {
+        "Est Delivery": est_delivery,
+        "Name": name_customer,
+        "Add-on": addon,
+        "Sizes": sizes_value,
+        "Count": count,
+        "City": city,
+        "Production Status": production_status,
+        "Price": price,
+        "Received": received,
+        "Balance": balance,
+        "Payment Status": payment_status,
+        "Remarks": remarks,
+        "Order Entry Date": datetime.today().date()
+    }
 
     if st.session_state.edit_index is None:
-        new_row = {
-            "Est Delivery": est_delivery,
-            "Name": name_customer,
-            "Add-on": addon,
-            "Sizes": sizes_value,
-            "Count": count,
-            "City": city,
-            "Production Status": production_status,
-            "Price": price,
-            "Received": received,
-            "Balance": balance,
-            "Payment Status": payment_status,
-            "Remarks": remarks,
-            "Order Entry Date": datetime.today().date()
-        }
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-
     else:
-        df.loc[st.session_state.edit_index, [
-            "Est Delivery", "Name", "Add-on", "Sizes",
-            "Count", "City", "Production Status",
-            "Price", "Received", "Balance",
-            "Payment Status", "Remarks"
-        ]] = [
-            est_delivery, name_customer, addon, sizes_value,
-            count, city, production_status,
-            price, received, balance,
-            payment_status, remarks
-        ]
+        df.loc[st.session_state.edit_index] = new_row
         st.session_state.edit_index = None
 
     df.to_csv(FILE_NAME, index=False)
@@ -253,7 +215,7 @@ if submit:
     st.rerun()
 
 # =====================================================
-# DISPLAY TABLE (AUTO WIDTH)
+# DISPLAY TABLE + DOWNLOADS
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -270,32 +232,59 @@ if not df.empty:
         lambda x: x.strftime("%d-%m-%Y") if pd.notna(x) else ""
     )
 
+    # DARK THEME TABLE
     table_html = df_display.to_html(index=False)
 
     st.markdown("""
         <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-            white-space: nowrap;
-        }
-        th {
-            background-color: #f3f4f6;
-        }
+        table { width:100%; border-collapse:collapse; color:white; }
+        th { background-color:#1f2937; padding:10px; text-align:left; }
+        td { padding:8px; border-bottom:1px solid #333; white-space:nowrap; }
+        tr:hover { background-color:#111827; }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown(table_html, unsafe_allow_html=True)
 
+    # CSV DOWNLOAD
+    csv = df_display.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        "📥 Download CSV",
+        csv,
+        "dresskraft_orders.csv",
+        "text/csv"
+    )
+
+    # PDF DOWNLOAD
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+
+    data = [df_display.columns.tolist()] + df_display.values.tolist()
+    pdf_table = Table(data)
+
+    pdf_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTSIZE', (0, 0), (-1, -1), 7),
+    ]))
+
+    doc.build([pdf_table])
+
+    st.download_button(
+        "📄 Download PDF",
+        buffer.getvalue(),
+        "dresskraft_orders.pdf",
+        "application/pdf"
+    )
+
+    # EDIT SELECTOR
     st.markdown("### ✏️ Select Order To Edit")
 
     selected_index = st.selectbox(
         "Choose Order",
-        options=df_display.index,
+        df_display.index,
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
