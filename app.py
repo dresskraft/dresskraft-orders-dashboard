@@ -20,7 +20,7 @@ def format_indian(number):
     return "{:,}".format(int(round(float(number))))
 
 # =====================================================
-# LOGIN (24 HOURS)
+# LOGIN
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
@@ -68,7 +68,7 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # =====================================================
-# DATA SETUP
+# DATA
 # =====================================================
 
 FILE_NAME = "orders.csv"
@@ -86,63 +86,88 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER FORM (BLANK + DYNAMIC + CALENDAR)
+# INITIALIZE BLANK STATE (FOR RESET)
+# =====================================================
+
+if "form_reset" not in st.session_state:
+    st.session_state.form_reset = True
+
+if st.session_state.form_reset:
+    st.session_state.est_delivery = None
+    st.session_state.order_entry_date = datetime.today()
+    st.session_state.name_customer = ""
+    st.session_state.addon = "-- Select --"
+    st.session_state.jacket_type = "-- Select --"
+    st.session_state.male = ""
+    st.session_state.female = ""
+    st.session_state.single = ""
+    st.session_state.count = ""
+    st.session_state.city = ""
+    st.session_state.production_status = "-- Select --"
+    st.session_state.price = ""
+    st.session_state.received = ""
+    st.session_state.remarks = ""
+    st.session_state.form_reset = False
+
+# =====================================================
+# ADD ORDER (DYNAMIC + BLANK RESET)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
-with st.form("order_form", clear_on_submit=True):
+est_delivery = st.date_input("Est Delivery", key="est_delivery")
+order_entry_date = st.date_input("Order Entry Date", key="order_entry_date")
 
-    est_delivery = st.date_input("Est Delivery")
+name_customer = st.text_input("Customer Name", key="name_customer")
 
-    order_entry_date = st.date_input("Order Entry Date", value=datetime.today())
+addon = st.selectbox(
+    "Add-on",
+    ["-- Select --"] + ADDON_OPTIONS,
+    key="addon"
+)
 
-    name_customer = st.text_input("Customer Name")
+jacket_type = st.selectbox(
+    "Jacket Type",
+    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
+    key="jacket_type"
+)
 
-    addon = st.selectbox(
-        "Add-on",
-        ["-- Select --"] + ADDON_OPTIONS
-    )
+sizes_value = ""
 
-    jacket_type = st.selectbox(
-        "Jacket Type",
-        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-    )
+# 🔥 TRUE DYNAMIC SIZE LOGIC
 
-    sizes_value = ""
+if jacket_type == "Couple (M + F)":
+    col1, col2 = st.columns(2)
+    male = col1.text_input("Male Size", key="male")
+    female = col2.text_input("Female Size", key="female")
 
-    if jacket_type == "Couple (M + F)":
-        col1, col2 = st.columns(2)
-        male = col1.text_input("Male Size")
-        female = col2.text_input("Female Size")
-        if male and female:
-            sizes_value = f"{male}M | {female}F"
+    if male and female:
+        sizes_value = f"{male}M | {female}F"
 
-    elif jacket_type == "Single":
-        single = st.text_input("Size")
-        if single:
-            sizes_value = single
+elif jacket_type == "Single":
+    single = st.text_input("Size", key="single")
+    if single:
+        sizes_value = single
 
-    elif jacket_type == "Custom / More than 2":
-        st.info("Sizes will be marked as Read Chat")
-        sizes_value = "Read Chat"
+elif jacket_type == "Custom / More than 2":
+    st.info("Sizes automatically set as Read Chat")
+    sizes_value = "Read Chat"
 
-    count = st.text_input("Count")
-    city = st.text_input("City")
+count = st.text_input("Count", key="count")
+city = st.text_input("City", key="city")
 
-    production_status = st.selectbox(
-        "Production Status",
-        ["-- Select --"] + PRODUCTION_OPTIONS
-    )
+production_status = st.selectbox(
+    "Production Status",
+    ["-- Select --"] + PRODUCTION_OPTIONS,
+    key="production_status"
+)
 
-    price = st.text_input("Price")
-    received = st.text_input("Received")
-    remarks = st.text_area("Remarks")
+price = st.text_input("Price", key="price")
+received = st.text_input("Received", key="received")
+remarks = st.text_area("Remarks", key="remarks")
 
-    submitted = st.form_submit_button("Add Order")
-
-if submitted:
+if st.button("Add Order"):
 
     if (
         not name_customer or
@@ -178,6 +203,10 @@ if submitted:
     df.to_csv(FILE_NAME, index=False)
 
     st.success("Order Added Successfully!")
+
+    # 🔥 PROPER RESET
+    st.session_state.form_reset = True
+    st.rerun()
 
 # =====================================================
 # ALL ORDERS
@@ -216,6 +245,7 @@ if not df.empty:
         df = df.drop(idx).reset_index(drop=True)
         df.to_csv(FILE_NAME, index=False)
         st.success("Deleted")
+        st.rerun()
 
     st.download_button(
         "📥 Download CSV",
