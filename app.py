@@ -1,56 +1,47 @@
 import streamlit as st
 import pandas as pd
 import os
-import streamlit_authenticator as stauth
+import time
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ==========================
-# LOGIN CONFIG
+# SIMPLE LOGIN SYSTEM
 # ==========================
 
-# Hashed password for: Diksha@1999
-hashed_password = "$2b$12$KIXQnL6z2bB6wQe1G9z5ZeZ0eV0pY2k0M1Hj1qZkVvK8gZxJrY9bS"
+USERS = ["srinath", "diksha", "megha"]
+PASSWORD = "Diksha@1999"
 
-credentials = {
-    "usernames": {
-        "srinath": {
-            "name": "Srinath",
-            "password": hashed_password
-        },
-        "diksha": {
-            "name": "Diksha",
-            "password": hashed_password
-        },
-        "megha": {
-            "name": "Megha",
-            "password": hashed_password
-        }
-    }
-}
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-authenticator = stauth.Authenticate(
-    credentials,
-    "dresskraft_cookie",
-    "super_secret_key",
-    cookie_expiry_days=1  # 24 hours
-)
+if not st.session_state.logged_in:
 
-# Render login in sidebar (compatible method)
-authenticator.login("Login", "sidebar")
+    st.title("🔐 Login")
 
-if st.session_state.get("authentication_status") is False:
-    st.error("Incorrect Username or Password")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username.lower() in USERS and password == PASSWORD:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.success("Login successful!")
+            time.sleep(1)
+            st.rerun()
+        else:
+            st.error("Invalid username or password")
+
     st.stop()
 
-if st.session_state.get("authentication_status") is None:
-    st.warning("Please login from sidebar")
-    st.stop()
+# ==========================
+# LOGOUT BUTTON
+# ==========================
 
-name = st.session_state.get("name")
-
-authenticator.logout("Logout", "sidebar")
-st.sidebar.write(f"Welcome {name}")
+st.sidebar.write(f"Welcome {st.session_state.username}")
+if st.sidebar.button("Logout"):
+    st.session_state.logged_in = False
+    st.rerun()
 
 # ==========================
 # DASHBOARD STARTS HERE
@@ -133,6 +124,7 @@ with st.form("order_form"):
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         df.to_csv(FILE_NAME, index=False)
         st.success("Order Added Successfully!")
+        time.sleep(1)
         st.rerun()
 
 st.subheader("📋 All Orders")
