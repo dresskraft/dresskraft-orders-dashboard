@@ -2,29 +2,38 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-# -------- SIMPLE PASSWORD PROTECTION --------
+import time
+from streamlit_cookies_manager import EncryptedCookieManager
+
+# ---------- COOKIE SETUP ----------
+cookies = EncryptedCookieManager(
+    prefix="dresskraft_",
+    password="super_secret_cookie_key"
+)
+
+if not cookies.ready():
+    st.stop()
+
 PASSWORD = "Diksha@1999"
+COOKIE_DURATION = 60 * 60 * 24  # 24 hours
 
 def check_password():
-    def password_entered():
-        if st.session_state["password"] == PASSWORD:
-            st.session_state["password_correct"] = True
-        else:
-            st.session_state["password_correct"] = False
+    if "login_time" in cookies:
+        if time.time() - float(cookies["login_time"]) < COOKIE_DURATION:
+            return True
 
-    if "password_correct" not in st.session_state:
-        st.text_input("Enter Password", type="password", key="password", on_change=password_entered)
-        return False
-    elif not st.session_state["password_correct"]:
-        st.text_input("Enter Password", type="password", key="password", on_change=password_entered)
-        st.error("Incorrect Password")
-        return False
-    else:
-        return True
+    password = st.text_input("Enter Password", type="password")
+
+    if password == PASSWORD:
+        cookies["login_time"] = str(time.time())
+        cookies.save()
+        st.rerun()
+
+    return False
 
 if not check_password():
     st.stop()
-# ------------------------------------------------
+
 FILE_NAME = "orders.csv"
 
 # Load existing data
