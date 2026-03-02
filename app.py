@@ -27,8 +27,8 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1,
 )
 
-# ✅ Render login in sidebar (IMPORTANT)
-name, authentication_status, username = authenticator.login("Login", "sidebar")
+# ✅ NEW VERSION SYNTAX
+name, authentication_status, username = authenticator.login(location="sidebar")
 
 if authentication_status is False:
     st.error("Incorrect Username or Password")
