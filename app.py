@@ -1,57 +1,60 @@
 import streamlit as st
 import pandas as pd
 import os
-import time
 from datetime import datetime
-from streamlit_cookies_manager import EncryptedCookieManager
-
-# ==============================
-# COOKIE SETUP (24 Hour Login)
-# ==============================
-
-cookies = EncryptedCookieManager(
-    prefix="dresskraft_",
-    password="super_secret_cookie_key"
-)
-
-if not cookies.ready():
-    st.stop()
-
-PASSWORD = "Diksha@1999"
-COOKIE_DURATION = 60 * 60 * 24  # 24 hours
-
-
-def check_password():
-    # If cookie exists and not expired
-    if "login_time" in cookies:
-        login_time = float(cookies["login_time"])
-        if time.time() - login_time < COOKIE_DURATION:
-            return True
-
-    # Show password input
-    password = st.text_input("Enter Password", type="password", key="password_input")
-
-    if password == PASSWORD:
-        cookies["login_time"] = str(time.time())
-        cookies.save()
-        st.rerun()
-
-    return False
-
-
-if not check_password():
-    st.stop()
-
-# ==============================
-# DASHBOARD STARTS HERE
-# ==============================
+import streamlit_authenticator as stauth
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
+
+# ==========================
+# LOGIN CONFIG
+# ==========================
+
+names = ["Srinath", "Diksha", "Megha"]
+usernames = ["srinath", "diksha", "megha"]
+
+# Same password for all users
+passwords = ["Diksha@1999", "Diksha@1999", "Diksha@1999"]
+
+hashed_passwords = stauth.Hasher(passwords).generate()
+
+credentials = {
+    "usernames": {
+        usernames[i]: {
+            "name": names[i],
+            "password": hashed_passwords[i]
+        } for i in range(len(usernames))
+    }
+}
+
+authenticator = stauth.Authenticate(
+    credentials,
+    "dresskraft_dashboard_cookie",
+    "super_secret_key_123",
+    cookie_expiry_days=1   # 24 hours login
+)
+
+name, authentication_status, username = authenticator.login("Login", "main")
+
+if authentication_status is False:
+    st.error("Incorrect Username or Password")
+    st.stop()
+
+if authentication_status is None:
+    st.warning("Please enter your credentials")
+    st.stop()
+
+authenticator.logout("Logout", "sidebar")
+st.sidebar.write(f"Welcome {name}")
+
+# ==========================
+# DASHBOARD STARTS HERE
+# ==========================
+
 st.title("📦 DressKraft Orders Dashboard")
 
 FILE_NAME = "orders.csv"
 
-# Load existing data
 if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
 else:
@@ -68,8 +71,6 @@ else:
         "Balance",
         "Payment Status"
     ])
-
-# ===== Dashboard Metrics =====
 
 st.subheader("📊 Overview")
 
@@ -88,18 +89,19 @@ col4.metric("Total Balance", total_balance)
 
 st.divider()
 
-# ===== Add New Order =====
-
 st.subheader("➕ Add New Order")
 
 with st.form("order_form"):
     est_delivery = st.date_input("Est Delivery")
-    name = st.text_input("Customer Name")
+    name_customer = st.text_input("Customer Name")
     addon = st.text_input("Add-on")
     sizes = st.text_input("Sizes")
     count = st.number_input("Count", min_value=1)
     city = st.text_input("City")
-    production_status = st.selectbox("Production Status", ["Pending", "In Progress", "Completed"])
+    production_status = st.selectbox(
+        "Production Status",
+        ["Pending", "In Progress", "Completed"]
+    )
     price = st.number_input("Price", min_value=0.0)
     received = st.number_input("Received", min_value=0.0)
 
@@ -111,7 +113,7 @@ with st.form("order_form"):
     if submitted:
         new_row = {
             "Est Delivery": est_delivery,
-            "Name": name,
+            "Name": name_customer,
             "Add-on": addon,
             "Sizes": sizes,
             "Count": count,
@@ -127,8 +129,6 @@ with st.form("order_form"):
         df.to_csv(FILE_NAME, index=False)
         st.success("Order Added Successfully!")
         st.rerun()
-
-# ===== Orders Table =====
 
 st.subheader("📋 All Orders")
 st.dataframe(df, use_container_width=True)
