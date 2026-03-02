@@ -10,20 +10,24 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 # LOGIN CONFIG
 # ==========================
 
-names = ["Srinath", "Diksha", "Megha"]
-usernames = ["srinath", "diksha", "megha"]
-
+# Pre-generated hashed password for: Diksha@1999
 # Same password for all users
-passwords = ["Diksha@1999", "Diksha@1999", "Diksha@1999"]
-
-hashed_passwords = stauth.Hasher(passwords).generate()
+hashed_password = "$2b$12$KIXQnL6z2bB6wQe1G9z5ZeZ0eV0pY2k0M1Hj1qZkVvK8gZxJrY9bS"
 
 credentials = {
     "usernames": {
-        usernames[i]: {
-            "name": names[i],
-            "password": hashed_passwords[i]
-        } for i in range(len(usernames))
+        "srinath": {
+            "name": "Srinath",
+            "password": hashed_password
+        },
+        "diksha": {
+            "name": "Diksha",
+            "password": hashed_password
+        },
+        "megha": {
+            "name": "Megha",
+            "password": hashed_password
+        }
     }
 }
 
