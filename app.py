@@ -2,19 +2,39 @@ import streamlit as st
 import pandas as pd
 import os
 import time
+import extra_streamlit_components as stx
+from datetime import datetime, timedelta
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ==========================
-# SIMPLE LOGIN SYSTEM
+# 24 HOUR LOGIN SYSTEM
 # ==========================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
 
+cookie_manager = stx.CookieManager()
+
+# Initialize session
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+# Check cookie
+login_cookie = cookie_manager.get("dresskraft_login")
+
+if login_cookie:
+    username, expiry = login_cookie.split("|")
+    expiry = datetime.fromisoformat(expiry)
+
+    if datetime.now() < expiry:
+        st.session_state.logged_in = True
+        st.session_state.username = username
+    else:
+        cookie_manager.delete("dresskraft_login")
+        st.session_state.logged_in = False
+
+# If not logged in → show login
 if not st.session_state.logged_in:
 
     st.title("🔐 Login")
@@ -24,6 +44,15 @@ if not st.session_state.logged_in:
 
     if st.button("Login"):
         if username.lower() in USERS and password == PASSWORD:
+            expiry_time = datetime.now() + timedelta(hours=24)
+            cookie_value = f"{username}|{expiry_time.isoformat()}"
+
+            cookie_manager.set(
+                "dresskraft_login",
+                cookie_value,
+                expires_at=expiry_time
+            )
+
             st.session_state.logged_in = True
             st.session_state.username = username
             st.success("Login successful!")
@@ -39,7 +68,9 @@ if not st.session_state.logged_in:
 # ==========================
 
 st.sidebar.write(f"Welcome {st.session_state.username}")
+
 if st.sidebar.button("Logout"):
+    cookie_manager.delete("dresskraft_login")
     st.session_state.logged_in = False
     st.rerun()
 
@@ -68,6 +99,10 @@ else:
         "Payment Status"
     ])
 
+# ==========================
+# OVERVIEW METRICS
+# ==========================
+
 st.subheader("📊 Overview")
 
 total_orders = len(df)
@@ -84,6 +119,10 @@ col3.metric("Total Received", total_received)
 col4.metric("Total Balance", total_balance)
 
 st.divider()
+
+# ==========================
+# ADD NEW ORDER
+# ==========================
 
 st.subheader("➕ Add New Order")
 
@@ -123,9 +162,14 @@ with st.form("order_form"):
 
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         df.to_csv(FILE_NAME, index=False)
+
         st.success("Order Added Successfully!")
         time.sleep(1)
         st.rerun()
+
+# ==========================
+# SHOW ALL ORDERS
+# ==========================
 
 st.subheader("📋 All Orders")
 st.dataframe(df, use_container_width=True)
