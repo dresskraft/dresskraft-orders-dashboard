@@ -10,18 +10,18 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ==========================================
-# HELPER FUNCTION
-# ==========================================
+# =====================================================
+# HELPER
+# =====================================================
 
 def format_indian(number):
     if pd.isna(number) or number == "":
         return "-"
     return "{:,}".format(int(round(float(number))))
 
-# ==========================================
-# LOGIN SYSTEM
-# ==========================================
+# =====================================================
+# LOGIN (24 HOURS)
+# =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
@@ -67,9 +67,9 @@ if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# ==========================================
+# =====================================================
 # DATA SETUP
-# ==========================================
+# =====================================================
 
 FILE_NAME = "orders.csv"
 
@@ -85,16 +85,19 @@ else:
         "Payment Status","Remarks","Order Entry Date"
     ])
 
-# ==========================================
-# ADD ORDER FORM (TRUE BLANK + AUTO RESET)
-# ==========================================
+# =====================================================
+# ADD ORDER FORM (BLANK + DYNAMIC + CALENDAR)
+# =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
 with st.form("order_form", clear_on_submit=True):
 
-    est_delivery = st.text_input("Est Delivery (DD-MM-YYYY)")
+    est_delivery = st.date_input("Est Delivery")
+
+    order_entry_date = st.date_input("Order Entry Date", value=datetime.today())
+
     name_customer = st.text_input("Customer Name")
 
     addon = st.selectbox(
@@ -110,8 +113,9 @@ with st.form("order_form", clear_on_submit=True):
     sizes_value = ""
 
     if jacket_type == "Couple (M + F)":
-        male = st.text_input("Male Size")
-        female = st.text_input("Female Size")
+        col1, col2 = st.columns(2)
+        male = col1.text_input("Male Size")
+        female = col2.text_input("Female Size")
         if male and female:
             sizes_value = f"{male}M | {female}F"
 
@@ -121,6 +125,7 @@ with st.form("order_form", clear_on_submit=True):
             sizes_value = single
 
     elif jacket_type == "Custom / More than 2":
+        st.info("Sizes will be marked as Read Chat")
         sizes_value = "Read Chat"
 
     count = st.text_input("Count")
@@ -140,7 +145,6 @@ with st.form("order_form", clear_on_submit=True):
 if submitted:
 
     if (
-        not est_delivery or
         not name_customer or
         addon == "-- Select --" or
         jacket_type == "-- Select --" or
@@ -149,19 +153,13 @@ if submitted:
         st.error("Please fill mandatory fields.")
         st.stop()
 
-    try:
-        est_date_parsed = datetime.strptime(est_delivery, "%d-%m-%Y")
-    except:
-        st.error("Date must be DD-MM-YYYY format.")
-        st.stop()
-
     price_val = float(price) if price else 0
     received_val = float(received) if received else 0
     balance = price_val - received_val
     payment_status = "Paid" if balance == 0 else "Pending"
 
     new_row = {
-        "Est Delivery": est_date_parsed,
+        "Est Delivery": est_delivery,
         "Name": name_customer,
         "Add-on": addon,
         "Sizes": sizes_value if sizes_value else "-",
@@ -173,7 +171,7 @@ if submitted:
         "Balance": balance,
         "Payment Status": payment_status,
         "Remarks": remarks if remarks else "-",
-        "Order Entry Date": datetime.today()
+        "Order Entry Date": order_entry_date
     }
 
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
@@ -181,15 +179,16 @@ if submitted:
 
     st.success("Order Added Successfully!")
 
-# ==========================================
+# =====================================================
 # ALL ORDERS
-# ==========================================
+# =====================================================
 
 st.subheader("📋 All Orders")
 
 if not df.empty:
 
     df_display = df.copy()
+
     df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"]).dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = pd.to_datetime(df_display["Order Entry Date"]).dt.strftime("%d-%m-%Y")
 
