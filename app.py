@@ -14,29 +14,40 @@ hashed_password = "$2b$12$KIXQnL6z2bB6wQe1G9z5ZeZ0eV0pY2k0M1Hj1qZkVvK8gZxJrY9bS"
 
 credentials = {
     "usernames": {
-        "srinath": {"name": "Srinath", "password": hashed_password},
-        "diksha": {"name": "Diksha", "password": hashed_password},
-        "megha": {"name": "Megha", "password": hashed_password},
+        "srinath": {
+            "name": "Srinath",
+            "password": hashed_password
+        },
+        "diksha": {
+            "name": "Diksha",
+            "password": hashed_password
+        },
+        "megha": {
+            "name": "Megha",
+            "password": hashed_password
+        }
     }
 }
 
 authenticator = stauth.Authenticate(
     credentials,
-    "dresskraft_dashboard_cookie",
-    "super_secret_key_123",
-    cookie_expiry_days=1,
+    "dresskraft_cookie",
+    "super_secret_key",
+    cookie_expiry_days=1  # 24 hours
 )
 
-# ✅ NEW VERSION SYNTAX
-name, authentication_status, username = authenticator.login(location="sidebar")
+# Render login in sidebar (compatible method)
+authenticator.login("Login", "sidebar")
 
-if authentication_status is False:
+if st.session_state.get("authentication_status") is False:
     st.error("Incorrect Username or Password")
     st.stop()
 
-if authentication_status is None:
+if st.session_state.get("authentication_status") is None:
     st.warning("Please login from sidebar")
     st.stop()
+
+name = st.session_state.get("name")
 
 authenticator.logout("Logout", "sidebar")
 st.sidebar.write(f"Welcome {name}")
