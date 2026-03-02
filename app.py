@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import os
 import extra_streamlit_components as stx
@@ -103,6 +103,7 @@ st.subheader("➕ Add Order")
 with st.form("order_form", clear_on_submit=True):
 
     est_delivery = st.date_input("Est Delivery")
+
     name_customer = st.text_input("Customer Name")
 
     addon = st.selectbox(
@@ -117,21 +118,42 @@ with st.form("order_form", clear_on_submit=True):
 
     sizes_value = "-"
 
+    # 🔥 FULL DYNAMIC SIZE CONDITIONS
+
     if jacket_type == "Couple (M + F)":
         col1, col2 = st.columns(2)
-        male = col1.number_input("Male Size", 30, 60, value=44)
-        female = col2.number_input("Female Size", 30, 60, value=38)
+
+        male = col1.number_input(
+            "Male Size",
+            min_value=30,
+            max_value=60,
+            step=1
+        )
+
+        female = col2.number_input(
+            "Female Size",
+            min_value=30,
+            max_value=60,
+            step=1
+        )
+
         sizes_value = f"{male}M | {female}F"
 
     elif jacket_type == "Single":
-        single = st.number_input("Size", 30, 60, value=38)
+        single = st.number_input(
+            "Size",
+            min_value=30,
+            max_value=60,
+            step=1
+        )
         sizes_value = str(single)
 
     elif jacket_type == "Custom / More than 2":
-        st.info("For more than 2 jackets, size marked as 'Read Chat'")
+        st.info("For more than 2 jackets, size will be marked as 'Read Chat'")
         sizes_value = "Read Chat"
 
-    count = st.number_input("Count", min_value=1, value=1)
+    count = st.number_input("Count", min_value=1, step=1)
+
     city = st.text_input("City")
 
     production_status = st.selectbox(
@@ -139,8 +161,9 @@ with st.form("order_form", clear_on_submit=True):
         ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
     )
 
-    price = st.number_input("Price", min_value=0.0, value=0.0)
-    received = st.number_input("Received", min_value=0.0, value=0.0)
+    price = st.number_input("Price", min_value=0.0, step=1.0)
+    received = st.number_input("Received", min_value=0.0, step=1.0)
+
     remarks = st.text_area("Remarks")
 
     submitted = st.form_submit_button("Add Order")
@@ -200,14 +223,6 @@ if not df.empty:
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
-
-    st.markdown("""
-        <style>
-        .stDataFrame thead th {
-            font-weight: bold !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
 
     st.dataframe(
         df_display,
