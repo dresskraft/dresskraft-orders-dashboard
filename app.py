@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ==========================
-# 24 HOUR LOGIN SYSTEM
+# LOGIN SYSTEM (24 HOURS)
 # ==========================
 
 USERS = ["srinath", "diksha", "megha"]
@@ -75,9 +75,11 @@ ADDON_OPTIONS = [
 ]
 
 PRODUCTION_OPTIONS = [
-    "Pending",
-    "In Progress",
-    "Completed"
+    "To Start",
+    "Ongoing",
+    "Pending for Payment",
+    "Paid - To Dispatch",
+    "Dispatched"
 ]
 
 if os.path.exists(FILE_NAME):
@@ -110,55 +112,124 @@ for col in required_columns:
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
 
-df = df.sort_values(by="Est Delivery", ascending=True)
+df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
 
 # ==========================
-# ADD NEW ORDER (ONLY WAY TO ADD ROWS)
+# EDIT MODE STATE
 # ==========================
 
-st.subheader("➕ Add New Order")
+if "edit_index" not in st.session_state:
+    st.session_state.edit_index = None
+
+# ==========================
+# ADD / EDIT FORM
+# ==========================
+
+st.subheader("➕ Add / Edit Order")
+
+if st.session_state.edit_index is not None:
+    row = df.loc[st.session_state.edit_index]
+else:
+    row = None
 
 with st.form("order_form"):
-    est_delivery = st.date_input("Est Delivery")
-    name_customer = st.text_input("Customer Name")
-    addon = st.selectbox("Add-on", ADDON_OPTIONS)
-    sizes = st.text_input("Sizes")
-    count = st.number_input("Count", min_value=1)
-    city = st.text_input("City")
-    production_status = st.selectbox("Production Status", PRODUCTION_OPTIONS)
-    price = st.number_input("Price", min_value=0.0)
-    received = st.number_input("Received", min_value=0.0)
+
+    est_delivery = st.date_input(
+        "Est Delivery",
+        value=row["Est Delivery"] if row is not None and pd.notna(row["Est Delivery"]) else datetime.today()
+    )
+
+    name_customer = st.text_input(
+        "Customer Name",
+        value=row["Name"] if row is not None else ""
+    )
+
+    addon = st.selectbox(
+        "Add-on",
+        ADDON_OPTIONS,
+        index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
+    )
+
+    sizes = st.text_input(
+        "Sizes",
+        value=row["Sizes"] if row is not None else ""
+    )
+
+    count = st.number_input(
+        "Count",
+        min_value=1,
+        value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1
+    )
+
+    city = st.text_input(
+        "City",
+        value=row["City"] if row is not None else ""
+    )
+
+    production_status = st.selectbox(
+        "Production Status",
+        PRODUCTION_OPTIONS,
+        index=PRODUCTION_OPTIONS.index(row["Production Status"])
+        if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
+    )
+
+    price = st.number_input(
+        "Price",
+        min_value=0.0,
+        value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0
+    )
+
+    received = st.number_input(
+        "Received",
+        min_value=0.0,
+        value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0
+    )
 
     balance = price - received
     payment_status = "Paid" if balance == 0 else "Pending"
 
-    submitted = st.form_submit_button("Add Order")
+    if st.session_state.edit_index is None:
+        submit = st.form_submit_button("Add Order")
+    else:
+        submit = st.form_submit_button("Update Order")
 
-    if submitted:
-        new_row = {
-            "Order Entry Date": datetime.today().date(),
-            "Est Delivery": est_delivery,
-            "Name": name_customer,
-            "Add-on": addon,
-            "Sizes": sizes,
-            "Count": count,
-            "City": city,
-            "Production Status": production_status,
-            "Price": price,
-            "Received": received,
-            "Balance": balance,
-            "Payment Status": payment_status
-        }
+    if submit:
+        if st.session_state.edit_index is None:
+            new_row = {
+                "Order Entry Date": datetime.today().date(),
+                "Est Delivery": est_delivery,
+                "Name": name_customer,
+                "Add-on": addon,
+                "Sizes": sizes,
+                "Count": count,
+                "City": city,
+                "Production Status": production_status,
+                "Price": price,
+                "Received": received,
+                "Balance": balance,
+                "Payment Status": payment_status
+            }
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        else:
+            df.loc[st.session_state.edit_index, [
+                "Est Delivery", "Name", "Add-on", "Sizes",
+                "Count", "City", "Production Status",
+                "Price", "Received", "Balance", "Payment Status"
+            ]] = [
+                est_delivery, name_customer, addon, sizes,
+                count, city, production_status,
+                price, received, balance, payment_status
+            ]
 
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            st.session_state.edit_index = None
+
         df.to_csv(FILE_NAME, index=False)
-
-        st.success("Order Added Successfully!")
+        st.success("Saved Successfully!")
         time.sleep(1)
         st.rerun()
 
 # ==========================
-# EDIT EXISTING ROWS ONLY
+# DISPLAY TABLE (NO EDITING)
 # ==========================
 
 st.subheader("📋 All Orders")
@@ -166,41 +237,14 @@ st.subheader("📋 All Orders")
 if not df.empty:
 
     df_display = df.copy()
-
     df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
 
-    edited_df = st.data_editor(
-        df_display,
-        use_container_width=True,
-        num_rows="fixed",  # 🚫 NO NEW ROWS
-        disabled=["Order Entry Date"],
-        column_config={
-            "Add-on": st.column_config.SelectboxColumn(
-                "Add-on",
-                options=ADDON_OPTIONS,
-                required=True
-            ),
-            "Production Status": st.column_config.SelectboxColumn(
-                "Production Status",
-                options=PRODUCTION_OPTIONS,
-                required=True
-            )
-        }
-    )
-
-    if st.button("Save Changes"):
-
-        edited_df["Order Entry Date"] = df["Order Entry Date"]
-
-        edited_df["Est Delivery"] = pd.to_datetime(
-            edited_df["Est Delivery"],
-            format="%d-%m-%Y",
-            errors="coerce"
-        )
-
-        edited_df.to_csv(FILE_NAME, index=False)
-
-        st.success("Changes Saved Successfully!")
-        time.sleep(1)
-        st.rerun()
+    for i in range(len(df_display)):
+        col1, col2 = st.columns([10,1])
+        with col1:
+            st.write(df_display.iloc[i].to_dict())
+        with col2:
+            if st.button("✏️", key=f"edit_{i}"):
+                st.session_state.edit_index = i
+                st.rerun()
