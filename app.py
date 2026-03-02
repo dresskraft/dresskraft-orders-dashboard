@@ -24,7 +24,7 @@ def format_indian(number):
     return "{:,}".format(number)
 
 # =====================================================
-# LOGIN SYSTEM
+# LOGIN SYSTEM (24 HOURS)
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
@@ -103,39 +103,49 @@ df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().norm
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
 
 # =====================================================
-# ADD ORDER FORM
+# ADD ORDER FORM (WITH PROPER RESET)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
-est_delivery = st.date_input("Est Delivery", datetime.today())
-name_customer = st.text_input("Customer Name", "")
-addon = st.selectbox("Add-on", ADDON_OPTIONS)
-jacket_type = st.selectbox("Jacket Type", ["Couple (M + F)", "Single", "Custom / More than 2"])
+est_delivery = st.date_input("Est Delivery", datetime.today(), key="est_delivery")
+name_customer = st.text_input("Customer Name", "", key="name_customer")
+addon = st.selectbox("Add-on", ADDON_OPTIONS, key="addon")
+
+jacket_type = st.selectbox(
+    "Jacket Type",
+    ["Couple (M + F)", "Single", "Custom / More than 2"],
+    key="jacket_type"
+)
 
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, 44)
-    female = col2.number_input("Female Size", 30, 60, 38)
+    male = col1.number_input("Male Size", 30, 60, 44, key="male_size")
+    female = col2.number_input("Female Size", 30, 60, 38, key="female_size")
     sizes_value = f"{int(male)}M | {int(female)}F"
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, 38)
+    single = st.number_input("Size", 30, 60, 38, key="single_size")
     sizes_value = str(int(single))
 else:
     sizes_value = "Read Chat"
 
-count = st.number_input("Count", min_value=1, value=1)
-city = st.text_input("City", "")
-production_status = st.selectbox("Production Status", PRODUCTION_OPTIONS)
+count = st.number_input("Count", min_value=1, value=1, key="count")
+city = st.text_input("City", "", key="city")
 
-price = st.number_input("Price", min_value=0.0, value=0.0)
-received = st.number_input("Received", min_value=0.0, value=0.0)
+production_status = st.selectbox(
+    "Production Status",
+    PRODUCTION_OPTIONS,
+    key="production_status"
+)
+
+price = st.number_input("Price", min_value=0.0, value=0.0, key="price")
+received = st.number_input("Received", min_value=0.0, value=0.0, key="received")
 
 balance = price - received
 payment_status = "Paid" if balance == 0 else "Pending"
 
-remarks = st.text_area("Remarks", "")
+remarks = st.text_area("Remarks", "", key="remarks")
 
 if st.button("Add Order"):
 
@@ -159,6 +169,17 @@ if st.button("Add Order"):
     df.to_csv(FILE_NAME, index=False)
 
     st.success("Saved Successfully!")
+
+    # Reset only form fields (NOT login state)
+    for key in [
+        "est_delivery", "name_customer", "addon",
+        "jacket_type", "male_size", "female_size",
+        "single_size", "count", "city",
+        "production_status", "price", "received", "remarks"
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
+
     time.sleep(1)
     st.rerun()
 
