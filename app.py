@@ -14,6 +14,16 @@ from reportlab.lib.pagesizes import landscape, A4
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # =====================================================
+# HELPER FUNCTIONS
+# =====================================================
+
+def format_indian(number):
+    if pd.isna(number):
+        return "-"
+    number = round(float(number))
+    return "{:,}".format(number).replace(",", "X").replace(".", ",").replace("X", ",")
+
+# =====================================================
 # LOGIN SYSTEM
 # =====================================================
 
@@ -68,21 +78,8 @@ if st.sidebar.button("Logout"):
 
 FILE_NAME = "orders.csv"
 
-ADDON_OPTIONS = [
-    "Pearls",
-    "Studs",
-    "Both Mix",
-    "No Add On",
-    "Read Chat"
-]
-
-PRODUCTION_OPTIONS = [
-    "To Start",
-    "Ongoing",
-    "Pending for Payment",
-    "Paid - To Dispatch",
-    "Dispatched"
-]
+ADDON_OPTIONS = ["Pearls", "Studs", "Both Mix", "No Add On", "Read Chat"]
+PRODUCTION_OPTIONS = ["To Start", "Ongoing", "Pending for Payment", "Paid - To Dispatch", "Dispatched"]
 
 if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
@@ -90,19 +87,9 @@ else:
     df = pd.DataFrame()
 
 required_columns = [
-    "Est Delivery",
-    "Name",
-    "Add-on",
-    "Sizes",
-    "Count",
-    "City",
-    "Production Status",
-    "Price",
-    "Received",
-    "Balance",
-    "Payment Status",
-    "Remarks",
-    "Order Entry Date"
+    "Est Delivery", "Name", "Add-on", "Sizes", "Count",
+    "City", "Production Status", "Price", "Received",
+    "Balance", "Payment Status", "Remarks", "Order Entry Date"
 ]
 
 for col in required_columns:
@@ -111,7 +98,6 @@ for col in required_columns:
 
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
-
 df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().normalize())
 
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
@@ -135,19 +121,9 @@ else:
 # FORM
 # =====================================================
 
-est_delivery = st.date_input(
-    "Est Delivery",
-    value=row["Est Delivery"].date() if row is not None and pd.notna(row["Est Delivery"]) else datetime.today()
-)
-
-name_customer = st.text_input("Customer Name", value=row["Name"] if row is not None else "")
-
-addon = st.selectbox(
-    "Add-on",
-    ADDON_OPTIONS,
-    index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
-)
-
+est_delivery = st.date_input("Est Delivery", datetime.today())
+name_customer = st.text_input("Customer Name", "")
+addon = st.selectbox("Add-on", ADDON_OPTIONS)
 jacket_type = st.selectbox("Jacket Type", ["Couple (M + F)", "Single", "Custom / More than 2"])
 
 if jacket_type == "Couple (M + F)":
@@ -162,13 +138,8 @@ else:
     sizes_value = "Read Chat"
 
 count = st.number_input("Count", min_value=1, value=1)
-city = st.text_input("City", value=row["City"] if row is not None else "")
-
-production_status = st.selectbox(
-    "Production Status",
-    PRODUCTION_OPTIONS,
-    index=PRODUCTION_OPTIONS.index(row["Production Status"]) if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
-)
+city = st.text_input("City", "")
+production_status = st.selectbox("Production Status", PRODUCTION_OPTIONS)
 
 price = st.number_input("Price", min_value=0.0, value=0.0)
 received = st.number_input("Received", min_value=0.0, value=0.0)
@@ -176,9 +147,9 @@ received = st.number_input("Received", min_value=0.0, value=0.0)
 balance = price - received
 payment_status = "Paid" if balance == 0 else "Pending"
 
-remarks = st.text_area("Remarks", value=row["Remarks"] if row is not None else "")
+remarks = st.text_area("Remarks", "")
 
-submit = st.button("Add Order" if st.session_state.edit_index is None else "Update Order")
+submit = st.button("Add Order")
 
 if submit:
 
@@ -190,27 +161,26 @@ if submit:
         "Count": count,
         "City": city,
         "Production Status": production_status,
-        "Price": price,
-        "Received": received,
-        "Balance": balance,
+        "Price": round(price),
+        "Received": round(received),
+        "Balance": round(balance),
         "Payment Status": payment_status,
         "Remarks": remarks,
         "Order Entry Date": pd.Timestamp.today().normalize()
     }
 
-    if st.session_state.edit_index is None:
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    else:
-        df.loc[st.session_state.edit_index] = new_row
-        st.session_state.edit_index = None
-
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(FILE_NAME, index=False)
+
     st.success("Saved Successfully!")
+
+    # RESET FORM
+    st.session_state.clear()
     time.sleep(1)
     st.rerun()
 
 # =====================================================
-# ALL ORDERS SECTION (SMALLER SIZE)
+# ALL ORDERS SECTION
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -218,14 +188,34 @@ st.subheader("📋 All Orders")
 if not df.empty:
 
     df_display = df.copy()
+
     df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
 
-    # Reduce table font size slightly
+    # Replace blanks with "-"
+    df_display = df_display.fillna("-")
+    df_display = df_display.replace("", "-")
+
+    # Format numbers Indian style
+    df_display["Price"] = df_display["Price"].apply(format_indian)
+    df_display["Received"] = df_display["Received"].apply(format_indian)
+    df_display["Balance"] = df_display["Balance"].apply(format_indian)
+
+    # Short column names
+    df_display.columns = [
+        "Est Dt", "Name", "Add-on", "Sizes", "Qty",
+        "City", "Prod Status", "Price", "Received",
+        "Balance", "Pay Status", "Remarks", "Entry Dt"
+    ]
+
+    # Reduce font size + center header
     st.markdown("""
         <style>
         .stDataFrame div {
             font-size: 13px;
+        }
+        .stDataFrame thead th {
+            text-align: center !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -237,7 +227,7 @@ if not df.empty:
     delete_index = st.selectbox(
         "Select Order To Delete",
         df_display.index,
-        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
+        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Dt']}"
     )
 
     if st.button("Delete Selected Order"):
@@ -247,10 +237,11 @@ if not df.empty:
         time.sleep(1)
         st.rerun()
 
-    # DOWNLOADS
+    # CSV DOWNLOAD
     csv = df_display.to_csv(index=False).encode("utf-8")
     st.download_button("📥 Download CSV", csv, "dresskraft_orders.csv", "text/csv")
 
+    # PDF DOWNLOAD (Landscape)
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
 
