@@ -6,7 +6,7 @@ from datetime import datetime
 
 # -------- PASSWORD PROTECTION (24 HOURS) --------
 PASSWORD = "Diksha@1999"
-COOKIE_DURATION = 60 * 60 * 24  # 24 hours in seconds
+COOKIE_DURATION = 60 * 60 * 24  # 24 hours
 
 def check_password():
     if "login_time" in st.session_state:
@@ -32,14 +32,7 @@ def check_password():
 
 if not check_password():
     st.stop()
-# -------------------------------------------------import pandas as pd
-import os
-from datetime import datetime
-
-st.set_page_config(page_title="DressKraft Orders", layout="centered")
-
-st.title("📦 DressKraft Orders Dashboard")
-
+# ------------------------------------------------
 FILE_NAME = "orders.csv"
 
 # Load existing data
