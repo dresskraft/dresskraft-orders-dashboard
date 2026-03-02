@@ -33,9 +33,7 @@ if login_cookie:
         st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-
     st.title("🔐 Login")
-
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
@@ -43,12 +41,7 @@ if not st.session_state.logged_in:
         if username.lower() in USERS and password == PASSWORD:
             expiry_time = datetime.now() + timedelta(hours=24)
             cookie_value = f"{username}|{expiry_time.isoformat()}"
-
-            cookie_manager.set(
-                "dresskraft_login",
-                cookie_value,
-                expires_at=expiry_time
-            )
+            cookie_manager.set("dresskraft_login", cookie_value, expires_at=expiry_time)
 
             st.session_state.logged_in = True
             st.session_state.username = username
@@ -61,29 +54,36 @@ if not st.session_state.logged_in:
     st.stop()
 
 st.sidebar.write(f"Welcome {st.session_state.username}")
-
 if st.sidebar.button("Logout"):
     cookie_manager.delete("dresskraft_login")
     st.session_state.logged_in = False
     st.rerun()
 
 # ==========================
-# DASHBOARD STARTS HERE
+# DATA SECTION
 # ==========================
-
-st.title("📦 DressKraft Orders Dashboard")
 
 FILE_NAME = "orders.csv"
 
-# Load data
+ADDON_OPTIONS = [
+    "Studs",
+    "Both Mix",
+    "No add on",
+    "Read Chat",
+    "Pearl + Stud",
+    "Pearls"
+]
+
+PRODUCTION_OPTIONS = [
+    "Pending",
+    "In Progress",
+    "Completed"
+]
+
 if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
 else:
     df = pd.DataFrame()
-
-# ==========================
-# SAFE COLUMN STRUCTURE FIX
-# ==========================
 
 required_columns = [
     "Order Entry Date",
@@ -107,18 +107,13 @@ for col in required_columns:
         else:
             df[col] = ""
 
-# Convert date columns safely
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
-
-# ==========================
-# SORT BY DELIVERY DATE
-# ==========================
 
 df = df.sort_values(by="Est Delivery", ascending=True)
 
 # ==========================
-# ADD NEW ORDER
+# ADD NEW ORDER (ONLY WAY TO ADD ROWS)
 # ==========================
 
 st.subheader("➕ Add New Order")
@@ -126,14 +121,11 @@ st.subheader("➕ Add New Order")
 with st.form("order_form"):
     est_delivery = st.date_input("Est Delivery")
     name_customer = st.text_input("Customer Name")
-    addon = st.text_input("Add-on")
+    addon = st.selectbox("Add-on", ADDON_OPTIONS)
     sizes = st.text_input("Sizes")
     count = st.number_input("Count", min_value=1)
     city = st.text_input("City")
-    production_status = st.selectbox(
-        "Production Status",
-        ["Pending", "In Progress", "Completed"]
-    )
+    production_status = st.selectbox("Production Status", PRODUCTION_OPTIONS)
     price = st.number_input("Price", min_value=0.0)
     received = st.number_input("Received", min_value=0.0)
 
@@ -166,7 +158,7 @@ with st.form("order_form"):
         st.rerun()
 
 # ==========================
-# EDIT TABLE
+# EDIT EXISTING ROWS ONLY
 # ==========================
 
 st.subheader("📋 All Orders")
@@ -175,22 +167,32 @@ if not df.empty:
 
     df_display = df.copy()
 
-    # Format dates for display
     df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
 
     edited_df = st.data_editor(
         df_display,
         use_container_width=True,
-        num_rows="dynamic",
-        disabled=["Order Entry Date"]  # LOCK THIS COLUMN
+        num_rows="fixed",  # 🚫 NO NEW ROWS
+        disabled=["Order Entry Date"],
+        column_config={
+            "Add-on": st.column_config.SelectboxColumn(
+                "Add-on",
+                options=ADDON_OPTIONS,
+                required=True
+            ),
+            "Production Status": st.column_config.SelectboxColumn(
+                "Production Status",
+                options=PRODUCTION_OPTIONS,
+                required=True
+            )
+        }
     )
 
     if st.button("Save Changes"):
-        # Restore locked column from original df
+
         edited_df["Order Entry Date"] = df["Order Entry Date"]
 
-        # Convert back to datetime
         edited_df["Est Delivery"] = pd.to_datetime(
             edited_df["Est Delivery"],
             format="%d-%m-%Y",
