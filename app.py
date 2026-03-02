@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # =====================================================
-# LOGIN SYSTEM (24 HOURS PER DEVICE)
+# LOGIN SYSTEM (24 HOURS)
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
@@ -82,7 +82,6 @@ else:
     df = pd.DataFrame()
 
 required_columns = [
-    "Order Entry Date",
     "Est Delivery",
     "Name",
     "Add-on",
@@ -93,7 +92,9 @@ required_columns = [
     "Price",
     "Received",
     "Balance",
-    "Payment Status"
+    "Payment Status",
+    "Remarks",
+    "Order Entry Date"
 ]
 
 for col in required_columns:
@@ -106,15 +107,11 @@ df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
 
 # =====================================================
-# EDIT MODE STATE
+# EDIT MODE
 # =====================================================
 
 if "edit_index" not in st.session_state:
     st.session_state.edit_index = None
-
-# =====================================================
-# ADD / EDIT FORM
-# =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add / Edit Order")
@@ -131,55 +128,55 @@ with st.form("order_form"):
         value=row["Est Delivery"] if row is not None and pd.notna(row["Est Delivery"]) else datetime.today()
     )
 
-    name_customer = st.text_input(
-        "Customer Name",
-        value=row["Name"] if row is not None else ""
-    )
+    name_customer = st.text_input("Customer Name", value=row["Name"] if row is not None else "")
 
     addon = st.selectbox(
         "Add-on",
         ADDON_OPTIONS,
-        index=ADDON_OPTIONS.index(row["Add-on"])
-        if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
+        index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
     )
 
-    sizes = st.text_input(
-        "Sizes",
-        value=row["Sizes"] if row is not None else ""
+    # =====================
+    # STRUCTURED SIZE MODE
+    # =====================
+
+    jacket_type = st.selectbox(
+        "Jacket Type",
+        ["Couple (M + F)", "Single", "Custom / More than 2"]
     )
 
-    count = st.number_input(
-        "Count",
-        min_value=1,
-        value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1
-    )
+    if jacket_type == "Couple (M + F)":
+        col1, col2 = st.columns(2)
+        male_size = col1.number_input("Male Size", min_value=30, max_value=60, value=44)
+        female_size = col2.number_input("Female Size", min_value=30, max_value=60, value=38)
+        sizes_value = f"{int(male_size)}M | {int(female_size)}F"
 
-    city = st.text_input(
-        "City",
-        value=row["City"] if row is not None else ""
-    )
+    elif jacket_type == "Single":
+        single_size = st.number_input("Size", min_value=30, max_value=60, value=38)
+        sizes_value = str(int(single_size))
+
+    else:
+        st.info("Size will be stored as 'Read Chat'")
+        sizes_value = "Read Chat"
+
+    count = st.number_input("Count", min_value=1, value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1)
+
+    city = st.text_input("City", value=row["City"] if row is not None else "")
 
     production_status = st.selectbox(
         "Production Status",
         PRODUCTION_OPTIONS,
-        index=PRODUCTION_OPTIONS.index(row["Production Status"])
-        if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
+        index=PRODUCTION_OPTIONS.index(row["Production Status"]) if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
     )
 
-    price = st.number_input(
-        "Price",
-        min_value=0.0,
-        value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0
-    )
+    price = st.number_input("Price", min_value=0.0, value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0)
 
-    received = st.number_input(
-        "Received",
-        min_value=0.0,
-        value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0
-    )
+    received = st.number_input("Received", min_value=0.0, value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0)
 
     balance = price - received
     payment_status = "Paid" if balance == 0 else "Pending"
+
+    remarks = st.text_area("Remarks", value=row["Remarks"] if row is not None else "")
 
     if st.session_state.edit_index is None:
         submit = st.form_submit_button("Add Order")
@@ -189,29 +186,27 @@ with st.form("order_form"):
     if submit:
         if st.session_state.edit_index is None:
             new_row = {
-                "Order Entry Date": datetime.today().date(),
                 "Est Delivery": est_delivery,
                 "Name": name_customer,
                 "Add-on": addon,
-                "Sizes": sizes,
+                "Sizes": sizes_value,
                 "Count": count,
                 "City": city,
                 "Production Status": production_status,
                 "Price": price,
                 "Received": received,
                 "Balance": balance,
-                "Payment Status": payment_status
+                "Payment Status": payment_status,
+                "Remarks": remarks,
+                "Order Entry Date": datetime.today().date()
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         else:
-            df.loc[st.session_state.edit_index, [
-                "Est Delivery", "Name", "Add-on", "Sizes",
-                "Count", "City", "Production Status",
-                "Price", "Received", "Balance", "Payment Status"
-            ]] = [
-                est_delivery, name_customer, addon, sizes,
+            df.loc[st.session_state.edit_index] = [
+                est_delivery, name_customer, addon, sizes_value,
                 count, city, production_status,
-                price, received, balance, payment_status
+                price, received, balance, payment_status,
+                remarks, df.loc[st.session_state.edit_index]["Order Entry Date"]
             ]
             st.session_state.edit_index = None
 
@@ -221,7 +216,7 @@ with st.form("order_form"):
         st.rerun()
 
 # =====================================================
-# DISPLAY TABLE (TABULAR + EDIT BUTTON)
+# DISPLAY TABLE
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -236,16 +231,12 @@ if not df.empty:
 
     st.markdown("### ✏️ Select Order To Edit")
 
-    col1, col2 = st.columns([3,1])
+    selected_index = st.selectbox(
+        "Choose Order",
+        options=df_display.index,
+        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
+    )
 
-    with col1:
-        selected_index = st.selectbox(
-            "Choose Order",
-            options=df_display.index,
-            format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
-        )
-
-    with col2:
-        if st.button("Edit"):
-            st.session_state.edit_index = selected_index
-            st.rerun()
+    if st.button("Edit"):
+        st.session_state.edit_index = selected_index
+        st.rerun()
