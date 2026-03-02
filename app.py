@@ -104,7 +104,7 @@ for col in required_columns:
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
 
-# Fix old missing Order Entry Date only
+# Fill only missing Order Entry Date (old rows)
 df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().normalize())
 
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
@@ -125,7 +125,7 @@ else:
     row = None
 
 # =====================================================
-# LIVE FORM (NO st.form so jacket type updates instantly)
+# LIVE FORM
 # =====================================================
 
 est_delivery = st.date_input(
@@ -145,7 +145,7 @@ addon = st.selectbox(
 )
 
 # =========================
-# STRUCTURED SIZE MODE (LIVE)
+# STRUCTURED SIZE MODE
 # =========================
 
 jacket_type = st.selectbox(
@@ -253,7 +253,7 @@ if submit:
     st.rerun()
 
 # =====================================================
-# DISPLAY TABLE
+# DISPLAY TABLE (AUTO WIDTH)
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -270,7 +270,26 @@ if not df.empty:
         lambda x: x.strftime("%d-%m-%Y") if pd.notna(x) else ""
     )
 
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
+    table_html = df_display.to_html(index=False)
+
+    st.markdown("""
+        <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #f3f4f6;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(table_html, unsafe_allow_html=True)
 
     st.markdown("### ✏️ Select Order To Edit")
 
