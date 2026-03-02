@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ==========================
-# LOGIN SYSTEM (24 HOURS)
-# ==========================
+# =====================================================
+# LOGIN SYSTEM (24 HOURS PER DEVICE)
+# =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
@@ -24,13 +24,11 @@ login_cookie = cookie_manager.get("dresskraft_login")
 if login_cookie:
     username, expiry = login_cookie.split("|")
     expiry = datetime.fromisoformat(expiry)
-
     if datetime.now() < expiry:
         st.session_state.logged_in = True
         st.session_state.username = username
     else:
         cookie_manager.delete("dresskraft_login")
-        st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     st.title("🔐 Login")
@@ -42,15 +40,11 @@ if not st.session_state.logged_in:
             expiry_time = datetime.now() + timedelta(hours=24)
             cookie_value = f"{username}|{expiry_time.isoformat()}"
             cookie_manager.set("dresskraft_login", cookie_value, expires_at=expiry_time)
-
             st.session_state.logged_in = True
             st.session_state.username = username
-            st.success("Login successful!")
-            time.sleep(1)
             st.rerun()
         else:
             st.error("Invalid username or password")
-
     st.stop()
 
 st.sidebar.write(f"Welcome {st.session_state.username}")
@@ -59,9 +53,9 @@ if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# ==========================
+# =====================================================
 # DATA SECTION
-# ==========================
+# =====================================================
 
 FILE_NAME = "orders.csv"
 
@@ -104,27 +98,25 @@ required_columns = [
 
 for col in required_columns:
     if col not in df.columns:
-        if col == "Order Entry Date":
-            df[col] = datetime.today().date()
-        else:
-            df[col] = ""
+        df[col] = ""
 
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
 
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
 
-# ==========================
+# =====================================================
 # EDIT MODE STATE
-# ==========================
+# =====================================================
 
 if "edit_index" not in st.session_state:
     st.session_state.edit_index = None
 
-# ==========================
+# =====================================================
 # ADD / EDIT FORM
-# ==========================
+# =====================================================
 
+st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add / Edit Order")
 
 if st.session_state.edit_index is not None:
@@ -147,7 +139,8 @@ with st.form("order_form"):
     addon = st.selectbox(
         "Add-on",
         ADDON_OPTIONS,
-        index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
+        index=ADDON_OPTIONS.index(row["Add-on"])
+        if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
     )
 
     sizes = st.text_input(
@@ -220,7 +213,6 @@ with st.form("order_form"):
                 count, city, production_status,
                 price, received, balance, payment_status
             ]
-
             st.session_state.edit_index = None
 
         df.to_csv(FILE_NAME, index=False)
@@ -228,9 +220,9 @@ with st.form("order_form"):
         time.sleep(1)
         st.rerun()
 
-# ==========================
-# DISPLAY TABLE (NO EDITING)
-# ==========================
+# =====================================================
+# DISPLAY TABLE (TABULAR + EDIT BUTTON)
+# =====================================================
 
 st.subheader("📋 All Orders")
 
@@ -240,11 +232,20 @@ if not df.empty:
     df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
 
-    for i in range(len(df_display)):
-        col1, col2 = st.columns([10,1])
-        with col1:
-            st.write(df_display.iloc[i].to_dict())
-        with col2:
-            if st.button("✏️", key=f"edit_{i}"):
-                st.session_state.edit_index = i
-                st.rerun()
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+    st.markdown("### ✏️ Select Order To Edit")
+
+    col1, col2 = st.columns([3,1])
+
+    with col1:
+        selected_index = st.selectbox(
+            "Choose Order",
+            options=df_display.index,
+            format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
+        )
+
+    with col2:
+        if st.button("Edit"):
+            st.session_state.edit_index = selected_index
+            st.rerun()
