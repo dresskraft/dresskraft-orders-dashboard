@@ -105,7 +105,7 @@ for col in required_columns:
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
 
-# Auto-fill missing entry dates (old broken rows)
+# Only fix missing Order Entry Date (old rows)
 df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().normalize())
 
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
@@ -201,6 +201,11 @@ with st.form("order_form"):
 
     if submit:
 
+        # Ensure Est Delivery selected
+        if est_delivery is None:
+            st.error("Est Delivery is required")
+            st.stop()
+
         if st.session_state.edit_index is None:
             new_row = {
                 "Est Delivery": est_delivery,
@@ -231,7 +236,6 @@ with st.form("order_form"):
                 price, received, balance,
                 payment_status, remarks
             ]
-
             st.session_state.edit_index = None
 
         df.to_csv(FILE_NAME, index=False)
