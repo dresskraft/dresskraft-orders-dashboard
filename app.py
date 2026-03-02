@@ -75,32 +75,44 @@ st.title("📦 DressKraft Orders Dashboard")
 
 FILE_NAME = "orders.csv"
 
-# Load or create dataframe
+# Load data
 if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
 else:
-    df = pd.DataFrame(columns=[
-        "Order Entry Date",
-        "Est Delivery",
-        "Name",
-        "Add-on",
-        "Sizes",
-        "Count",
-        "City",
-        "Production Status",
-        "Price",
-        "Received",
-        "Balance",
-        "Payment Status"
-    ])
-
-# Ensure date columns parsed correctly
-if not df.empty:
-    df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
-    df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
+    df = pd.DataFrame()
 
 # ==========================
-# SORT BY EST DELIVERY
+# SAFE COLUMN STRUCTURE FIX
+# ==========================
+
+required_columns = [
+    "Order Entry Date",
+    "Est Delivery",
+    "Name",
+    "Add-on",
+    "Sizes",
+    "Count",
+    "City",
+    "Production Status",
+    "Price",
+    "Received",
+    "Balance",
+    "Payment Status"
+]
+
+for col in required_columns:
+    if col not in df.columns:
+        if col == "Order Entry Date":
+            df[col] = datetime.today().date()
+        else:
+            df[col] = ""
+
+# Convert date columns safely
+df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
+df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
+
+# ==========================
+# SORT BY DELIVERY DATE
 # ==========================
 
 df = df.sort_values(by="Est Delivery", ascending=True)
@@ -154,34 +166,39 @@ with st.form("order_form"):
         st.rerun()
 
 # ==========================
-# EDIT OPTION
+# EDIT TABLE
 # ==========================
 
 st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # Display formatted date
     df_display = df.copy()
+
+    # Format dates for display
     df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
     df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
 
     edited_df = st.data_editor(
         df_display,
+        use_container_width=True,
         num_rows="dynamic",
-        use_container_width=True
+        disabled=["Order Entry Date"]  # LOCK THIS COLUMN
     )
 
     if st.button("Save Changes"):
-        # Keep Order Entry Date locked (do not overwrite)
+        # Restore locked column from original df
         edited_df["Order Entry Date"] = df["Order Entry Date"]
 
-        # Convert Est Delivery back to datetime
+        # Convert back to datetime
         edited_df["Est Delivery"] = pd.to_datetime(
-            edited_df["Est Delivery"], format="%d-%m-%Y", errors="coerce"
+            edited_df["Est Delivery"],
+            format="%d-%m-%Y",
+            errors="coerce"
         )
 
         edited_df.to_csv(FILE_NAME, index=False)
-        st.success("Changes Saved!")
+
+        st.success("Changes Saved Successfully!")
         time.sleep(1)
         st.rerun()
