@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import os
 import time
@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # =====================================================
-# LOGIN SYSTEM (24 HOURS)
+# LOGIN SYSTEM (24 HOURS PER DEVICE)
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
@@ -101,8 +101,12 @@ for col in required_columns:
     if col not in df.columns:
         df[col] = ""
 
+# Fix dates safely
 df["Est Delivery"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
 df["Order Entry Date"] = pd.to_datetime(df["Order Entry Date"], errors="coerce")
+
+# Auto-fill missing entry dates (old broken rows)
+df["Order Entry Date"] = df["Order Entry Date"].fillna(pd.Timestamp.today().normalize())
 
 df = df.sort_values(by="Est Delivery", ascending=True).reset_index(drop=True)
 
@@ -136,9 +140,9 @@ with st.form("order_form"):
         index=ADDON_OPTIONS.index(row["Add-on"]) if row is not None and row["Add-on"] in ADDON_OPTIONS else 0
     )
 
-    # =====================
+    # =========================
     # STRUCTURED SIZE MODE
-    # =====================
+    # =========================
 
     jacket_type = st.selectbox(
         "Jacket Type",
@@ -159,7 +163,11 @@ with st.form("order_form"):
         st.info("Size will be stored as 'Read Chat'")
         sizes_value = "Read Chat"
 
-    count = st.number_input("Count", min_value=1, value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1)
+    count = st.number_input(
+        "Count",
+        min_value=1,
+        value=int(row["Count"]) if row is not None and str(row["Count"]).isdigit() else 1
+    )
 
     city = st.text_input("City", value=row["City"] if row is not None else "")
 
@@ -169,9 +177,17 @@ with st.form("order_form"):
         index=PRODUCTION_OPTIONS.index(row["Production Status"]) if row is not None and row["Production Status"] in PRODUCTION_OPTIONS else 0
     )
 
-    price = st.number_input("Price", min_value=0.0, value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0)
+    price = st.number_input(
+        "Price",
+        min_value=0.0,
+        value=float(row["Price"]) if row is not None and str(row["Price"]) != "" else 0.0
+    )
 
-    received = st.number_input("Received", min_value=0.0, value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0)
+    received = st.number_input(
+        "Received",
+        min_value=0.0,
+        value=float(row["Received"]) if row is not None and str(row["Received"]) != "" else 0.0
+    )
 
     balance = price - received
     payment_status = "Paid" if balance == 0 else "Pending"
@@ -184,6 +200,7 @@ with st.form("order_form"):
         submit = st.form_submit_button("Update Order")
 
     if submit:
+
         if st.session_state.edit_index is None:
             new_row = {
                 "Est Delivery": est_delivery,
@@ -201,13 +218,20 @@ with st.form("order_form"):
                 "Order Entry Date": datetime.today().date()
             }
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
         else:
-            df.loc[st.session_state.edit_index] = [
+            df.loc[st.session_state.edit_index, [
+                "Est Delivery", "Name", "Add-on", "Sizes",
+                "Count", "City", "Production Status",
+                "Price", "Received", "Balance",
+                "Payment Status", "Remarks"
+            ]] = [
                 est_delivery, name_customer, addon, sizes_value,
                 count, city, production_status,
-                price, received, balance, payment_status,
-                remarks, df.loc[st.session_state.edit_index]["Order Entry Date"]
+                price, received, balance,
+                payment_status, remarks
             ]
+
             st.session_state.edit_index = None
 
         df.to_csv(FILE_NAME, index=False)
@@ -224,8 +248,14 @@ st.subheader("📋 All Orders")
 if not df.empty:
 
     df_display = df.copy()
-    df_display["Est Delivery"] = df_display["Est Delivery"].dt.strftime("%d-%m-%Y")
-    df_display["Order Entry Date"] = df_display["Order Entry Date"].dt.strftime("%d-%m-%Y")
+
+    df_display["Est Delivery"] = df_display["Est Delivery"].apply(
+        lambda x: x.strftime("%d-%m-%Y") if pd.notna(x) else ""
+    )
+
+    df_display["Order Entry Date"] = df_display["Order Entry Date"].apply(
+        lambda x: x.strftime("%d-%m-%Y") if pd.notna(x) else ""
+    )
 
     st.dataframe(df_display, use_container_width=True, hide_index=True)
 
