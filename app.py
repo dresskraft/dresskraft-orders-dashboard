@@ -10,7 +10,6 @@ from reportlab.lib.pagesizes import landscape, A4
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ================= DARK THEME =================
-
 st.markdown("""
 <style>
 html, body, [class*="css"] {
@@ -42,8 +41,6 @@ div[data-baseweb="select"] > div {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# ================= HEADER =================
 
 st.markdown("""
 <div style="text-align:center;margin-bottom:15px;">
@@ -181,12 +178,12 @@ if st.button("Add Order"):
 
     st.success("Order Added Successfully!")
 
-# ===== CLEAR FORM FIELDS =====
-for key in list(st.session_state.keys()):
-    if key.startswith("add_"):
-        del st.session_state[key]
+    # ===== CLEAR FORM FIELDS =====
+    for key in list(st.session_state.keys()):
+        if key.startswith("add_"):
+            del st.session_state[key]
 
-st.rerun()
+    st.rerun()
     # =====================================================
 # ALL ORDERS SECTION
 # =====================================================
@@ -195,7 +192,7 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # ===== FILTER =====
+    # ===== FILTER BY PRODUCTION STATUS =====
     status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
     status_options = sorted(list(set(status_options)))
 
@@ -211,7 +208,7 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ===== AUTO SORT ASCENDING =====
+    # ===== AUTO SORT ASCENDING (Oldest to Latest) =====
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
     df_display = df_display.sort_values("__sort", ascending=True)
     df_display = df_display.drop(columns=["__sort"])
@@ -237,14 +234,12 @@ if not df.empty:
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    # ===== REORDER COLUMNS (Move Look after Name) =====
+    # ===== MOVE LOOK AFTER NAME =====
     columns = df_display.columns.tolist()
-
     if "Look" in columns:
         columns.remove("Look")
         name_index = columns.index("Name")
         columns.insert(name_index + 1, "Look")
-
     df_display = df_display[columns]
 
     st.dataframe(df_display, use_container_width=True)
@@ -283,7 +278,6 @@ if not df.empty:
             key="edit_name"
         )
 
-        # ===== LOOK EDIT =====
         look_options = ["-- Select --","LED","Non-LED","Patch","Multiple"]
 
         edit_look = st.selectbox(
