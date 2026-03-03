@@ -10,27 +10,15 @@ from reportlab.lib.pagesizes import landscape, A4
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # =====================================================
-# DARK THEME STYLING
+# DARK THEME
 # =====================================================
 
 st.markdown("""
 <style>
-
-.stApp {
-    background-color: #0f1117;
-    color: #ffffff;
-}
-
-h1, h2, h3, h4 {
-    color: #ffffff;
-}
+.stApp { background-color: #0f1117; color: white; }
 
 div[data-baseweb="select"] > div {
-    background-color: #1c1f26;
-    color: white;
-}
-
-div[data-baseweb="select"] span {
+    background-color: #1c1f26 !important;
     color: white !important;
 }
 
@@ -53,7 +41,6 @@ textarea {
 .stButton>button:hover {
     background-color: #3b4252;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,7 +73,7 @@ def payment_status_logic(price, received):
     return "-"
 
 # =====================================================
-# SIMPLE PASSWORD LOGIN
+# LOGIN
 # =====================================================
 
 PASSWORD = "Diksha@1999"
@@ -104,7 +91,6 @@ if not st.session_state.authenticated:
             st.rerun()
         else:
             st.error("Incorrect Password")
-
     st.stop()
 
 # =====================================================
@@ -122,7 +108,7 @@ else:
         "Remarks","Order Entry Date"
     ])
     # =====================================================
-# ADD ORDER SECTION (AUTO RESET – FINAL)
+# ADD ORDER SECTION (AUTO RESET + DYNAMIC SIZING)
 # =====================================================
 
 st.subheader("➕ Add Order")
@@ -132,7 +118,7 @@ with st.form("add_order_form", clear_on_submit=True):
     est_delivery = st.date_input("Est Delivery")
     name_customer = st.text_input("Customer Name")
 
-    # ===== LOOK (AFTER NAME) =====
+    # LOOK
     look = st.selectbox(
         "Look",
         ["-- Select --","LED","Non-LED","Patch","Multiple"]
@@ -275,7 +261,7 @@ if not df.empty:
     st.dataframe(df_display, use_container_width=True)
 
     # =====================================================
-    # EDIT SECTION
+    # EDIT SECTION (FULL DYNAMIC SIZING RESTORED)
     # =====================================================
 
     st.markdown("### ✏️ Edit Order")
@@ -308,8 +294,8 @@ if not df.empty:
             key="edit_name"
         )
 
+        # LOOK
         look_options = ["-- Select --","LED","Non-LED","Patch","Multiple"]
-
         edit_look = st.selectbox(
             "Look",
             look_options,
@@ -317,14 +303,62 @@ if not df.empty:
             key="edit_look"
         )
 
+        # ADD ON
         addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
-
         edit_addon = st.selectbox(
             "Add-on",
             addon_options,
             index=addon_options.index(edit["Add-on"]) if edit["Add-on"] in addon_options else 0,
             key="edit_addon"
         )
+
+        # ===== DYNAMIC JACKET TYPE =====
+        size_val = str(edit["Sizes"])
+
+        if "M |" in size_val:
+            detected_type = "Couple (M + F)"
+        elif size_val == "Read Chat":
+            detected_type = "Custom / More than 2"
+        elif size_val == "-" or size_val == "":
+            detected_type = "-- Select --"
+        else:
+            detected_type = "Single"
+
+        jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+
+        edit_jacket_type = st.selectbox(
+            "Jacket Type",
+            jacket_options,
+            index=jacket_options.index(detected_type),
+            key="edit_jacket"
+        )
+
+        edit_sizes_value = "-"
+
+        if edit_jacket_type == "Couple (M + F)":
+            try:
+                m, f = size_val.replace("M","").replace("F","").split("|")
+                m = int(m.strip())
+                f = int(f.strip())
+            except:
+                m, f = 40, 36
+
+            col1, col2 = st.columns(2)
+            m_edit = col1.number_input("Male Size", 30, 60, value=m, key="edit_male")
+            f_edit = col2.number_input("Female Size", 30, 60, value=f, key="edit_female")
+            edit_sizes_value = f"{m_edit}M | {f_edit}F"
+
+        elif edit_jacket_type == "Single":
+            try:
+                s = int(size_val)
+            except:
+                s = 40
+            s_edit = st.number_input("Size", 30, 60, value=s, key="edit_single")
+            edit_sizes_value = str(s_edit)
+
+        elif edit_jacket_type == "Custom / More than 2":
+            st.info("Size will be marked as 'Read Chat'")
+            edit_sizes_value = "Read Chat"
 
         edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
         edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city")
@@ -352,6 +386,7 @@ if not df.empty:
                     "Name": edit_name,
                     "Look": edit_look if edit_look != "-- Select --" else "-",
                     "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
+                    "Sizes": edit_sizes_value,
                     "Count": edit_count,
                     "City": edit_city if edit_city else "-",
                     "Production Status": edit_status if edit_status != "-- Select --" else "-",
