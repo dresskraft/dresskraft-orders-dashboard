@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import os
 import extra_streamlit_components as stx
@@ -74,7 +74,7 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= LOGIN =================
+# ================= LOGIN SYSTEM =================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
@@ -105,7 +105,11 @@ if not st.session_state.logged_in:
     if st.button("Login"):
         if user.lower() in USERS and pwd == PASSWORD:
             expiry = datetime.now() + timedelta(hours=24)
-            cookie_manager.set("dresskraft_login", f"{user}|{expiry.isoformat()}", expires_at=expiry)
+            cookie_manager.set(
+                "dresskraft_login",
+                f"{user}|{expiry.isoformat()}",
+                expires_at=expiry
+            )
             st.session_state.logged_in = True
             st.session_state.username = user
             st.rerun()
@@ -132,44 +136,44 @@ else:
         "Remarks","Order Entry Date"
     ])
 
-# ================= ADD ORDER =================
+# ================= ADD ORDER SECTION =================
 
 st.markdown("## ➕ Add Order")
 
-est_delivery = st.date_input("Est Delivery")
-name_customer = st.text_input("Customer Name")
+est_delivery = st.date_input("Est Delivery", key="add_est")
+name_customer = st.text_input("Customer Name", key="add_name")
 
 addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
-addon = st.selectbox("Add-on", addon_options)
+addon = st.selectbox("Add-on", addon_options, key="add_addon")
 
 jacket_type_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-jacket_type = st.selectbox("Jacket Type", jacket_type_options)
+jacket_type = st.selectbox("Jacket Type", jacket_type_options, key="add_jacket")
 
 sizes_value = "-"
 male = female = single = None
 
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60)
-    female = col2.number_input("Female Size", 30, 60)
+    male = col1.number_input("Male Size", 30, 60, key="add_male")
+    female = col2.number_input("Female Size", 30, 60, key="add_female")
 
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60)
+    single = st.number_input("Size", 30, 60, key="add_single")
 
 elif jacket_type == "Custom / More than 2":
     st.info("Size will be marked as 'Read Chat'")
 
-count = st.number_input("Count", min_value=1)
-city = st.text_input("City")
+count = st.number_input("Count", min_value=1, key="add_count")
+city = st.text_input("City", key="add_city")
 
 status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
-production_status = st.selectbox("Production Status", status_options)
+production_status = st.selectbox("Production Status", status_options, key="add_status")
 
-price = st.number_input("Price", min_value=0.0)
-received = st.number_input("Received", min_value=0.0)
-remarks = st.text_area("Remarks")
+price = st.number_input("Price", min_value=0.0, key="add_price")
+received = st.number_input("Received", min_value=0.0, key="add_received")
+remarks = st.text_area("Remarks", key="add_remarks")
 
-if st.button("Add Order"):
+if st.button("Add Order", key="add_order_btn"):
 
     if not name_customer:
         st.error("Customer Name is required.")
@@ -226,11 +230,13 @@ if not df.empty:
 
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
-# ================= AUTO SORT (Oldest → Latest) =================
 
-df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
-df_display = df_display.sort_values("__sort", ascending=True)
-df_display = df_display.drop(columns=["__sort"])
+    # ================= AUTO SORT (Oldest → Latest) =================
+
+    df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
+    df_display = df_display.sort_values("__sort", ascending=True)
+    df_display = df_display.drop(columns=["__sort"])
+
     # ================= PAYMENT STATUS =================
 
     df_display["Payment Status"] = df_display.apply(
@@ -341,11 +347,7 @@ df_display = df_display.drop(columns=["__sort"])
             edit_sizes_value = "Read Chat"
 
         edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count_unique")
-        edit_city = st.text_input(
-            "City",
-            value="" if edit["City"] == "-" else edit["City"],
-            key="edit_city_unique"
-        )
+        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city_unique")
 
         status_options2 = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
 
@@ -358,11 +360,7 @@ df_display = df_display.drop(columns=["__sort"])
 
         edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price_unique")
         edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received_unique")
-        edit_remarks = st.text_area(
-            "Remarks",
-            value="" if edit["Remarks"] == "-" else edit["Remarks"],
-            key="edit_remarks_unique"
-        )
+        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks_unique")
 
         col_update_btn, col_update_msg = st.columns([1,2])
 
