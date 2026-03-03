@@ -226,14 +226,11 @@ if not df.empty:
 
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
+# ================= AUTO SORT (Oldest → Latest) =================
 
-    # ================= AUTO SORT (ALWAYS DESCENDING) =================
-    # This runs on every refresh — no memory stored
-
-    df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
-    df_display = df_display.sort_values("__sort", ascending=False)
-    df_display = df_display.drop(columns=["__sort"])
-
+df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
+df_display = df_display.sort_values("__sort", ascending=True)
+df_display = df_display.drop(columns=["__sort"])
     # ================= PAYMENT STATUS =================
 
     df_display["Payment Status"] = df_display.apply(
