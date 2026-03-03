@@ -131,20 +131,21 @@ addon = st.selectbox(
 # ===== JACKET TYPE (VISIBLE + DYNAMIC) =====
 jacket_type = st.selectbox(
     "Jacket Type",
-    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
+    key="add_jacket"
 )
 
 sizes_value = "-"
 male = female = single = None
 
-# ===== ORIGINAL DYNAMIC SIZE LOGIC =====
+# ===== DYNAMIC SIZING =====
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, step=1)
-    female = col2.number_input("Female Size", 30, 60, step=1)
+    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
+    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
 
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, step=1)
+    single = st.number_input("Size", 30, 60, step=1, key="add_single")
 
 elif jacket_type == "Custom / More than 2":
     st.info("Size will be marked as 'Read Chat'")
