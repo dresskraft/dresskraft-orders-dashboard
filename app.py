@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
+import extra_streamlit_components as stx
+from datetime import datetime, timedelta
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
@@ -20,13 +20,13 @@ html, body, [class*="css"] {
 }
 
 .logo-container {
-    margin-top: 55px;
-    margin-bottom: 25px;
+    margin-top: 60px;
+    margin-bottom: 30px;
     text-align: center;
 }
 
 .logo-text {
-    font-size: 34px;
+    font-size: 36px;
     font-weight: 700;
     color: white;
 }
@@ -36,6 +36,7 @@ html, body, [class*="css"] {
 
 div[data-baseweb="select"] > div {
     background-color: #1f2937 !important;
+    color: white !important;
 }
 
 input, textarea {
@@ -62,60 +63,49 @@ input, textarea {
 </div>
 """, unsafe_allow_html=True)
 
-# ================= 24 HOUR PASSWORD LOGIN (BROWSER STORAGE) =================
+# ================= LOGIN SYSTEM (24 HOURS STABLE) =================
 
 PASSWORD = "Diksha@1999"
+cookie_manager = stx.CookieManager()
 
-login_status = components.html(
-    """
-    <script>
-    const expiry = localStorage.getItem("dresskraft_login_expiry");
-    const now = new Date().getTime();
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-    if (expiry && now < parseInt(expiry)) {
-        document.write("LOGGED_IN");
-    } else {
-        document.write("NOT_LOGGED_IN");
-    }
-    </script>
-    """,
-    height=0,
-)
+cookie = cookie_manager.get("dresskraft_auth")
 
-if "LOGGED_IN" not in login_status:
+if cookie:
+    try:
+        expiry = datetime.fromisoformat(cookie)
+        if datetime.now() < expiry:
+            st.session_state.authenticated = True
+        else:
+            cookie_manager.delete("dresskraft_auth")
+    except:
+        cookie_manager.delete("dresskraft_auth")
 
+if not st.session_state.authenticated:
     st.title("Login")
     pwd = st.text_input("Enter Password", type="password")
 
     if st.button("Login"):
         if pwd == PASSWORD:
-            components.html(
-                """
-                <script>
-                const expiry = new Date().getTime() + (24 * 60 * 60 * 1000);
-                localStorage.setItem("dresskraft_login_expiry", expiry);
-                window.location.reload();
-                </script>
-                """,
-                height=0,
+            expiry = datetime.now() + timedelta(hours=24)
+            cookie_manager.set(
+                "dresskraft_auth",
+                expiry.isoformat(),
+                expires_at=expiry
             )
+            st.session_state.authenticated = True
+            st.rerun()
         else:
             st.error("Incorrect Password")
 
     st.stop()
 
-st.sidebar.markdown("### Welcome")
-
 if st.sidebar.button("Logout"):
-    components.html(
-        """
-        <script>
-        localStorage.removeItem("dresskraft_login_expiry");
-        window.location.reload();
-        </script>
-        """,
-        height=0,
-    )
+    cookie_manager.delete("dresskraft_auth")
+    st.session_state.authenticated = False
+    st.rerun()
 
 # ================= HELPERS =================
 
