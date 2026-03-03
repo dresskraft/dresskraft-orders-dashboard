@@ -94,16 +94,36 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER FORM
+# ADD ORDER (DYNAMIC SIZE FILTER RESTORED)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
+# --- Reactive Jacket Type ---
+jacket_type = st.selectbox(
+    "Jacket Type",
+    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+)
+
+sizes_value = "-"
+male = female = single = None
+
+if jacket_type == "Couple (M + F)":
+    col1, col2 = st.columns(2)
+    male = col1.number_input("Male Size", 30, 60, step=1)
+    female = col2.number_input("Female Size", 30, 60, step=1)
+
+elif jacket_type == "Single":
+    single = st.number_input("Size", 30, 60, step=1)
+
+elif jacket_type == "Custom / More than 2":
+    st.info("Size will be marked as 'Read Chat'")
+
+# --- Main Form ---
 with st.form("order_form", clear_on_submit=True):
 
     est_delivery = st.date_input("Est Delivery")
-
     name_customer = st.text_input("Customer Name")
 
     addon = st.selectbox(
@@ -111,49 +131,7 @@ with st.form("order_form", clear_on_submit=True):
         ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
     )
 
-    jacket_type = st.selectbox(
-        "Jacket Type",
-        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-    )
-
-    sizes_value = "-"
-
-    # 🔥 FULL DYNAMIC SIZE CONDITIONS
-
-    if jacket_type == "Couple (M + F)":
-        col1, col2 = st.columns(2)
-
-        male = col1.number_input(
-            "Male Size",
-            min_value=30,
-            max_value=60,
-            step=1
-        )
-
-        female = col2.number_input(
-            "Female Size",
-            min_value=30,
-            max_value=60,
-            step=1
-        )
-
-        sizes_value = f"{male}M | {female}F"
-
-    elif jacket_type == "Single":
-        single = st.number_input(
-            "Size",
-            min_value=30,
-            max_value=60,
-            step=1
-        )
-        sizes_value = str(single)
-
-    elif jacket_type == "Custom / More than 2":
-        st.info("For more than 2 jackets, size will be marked as 'Read Chat'")
-        sizes_value = "Read Chat"
-
     count = st.number_input("Count", min_value=1, step=1)
-
     city = st.text_input("City")
 
     production_status = st.selectbox(
@@ -178,6 +156,22 @@ if submitted:
     ):
         st.error("Please fill mandatory fields.")
         st.stop()
+
+    # STRICT SIZE LOGIC
+    if jacket_type == "Couple (M + F)":
+        if male is None or female is None:
+            st.error("Please enter both sizes.")
+            st.stop()
+        sizes_value = f"{male}M | {female}F"
+
+    elif jacket_type == "Single":
+        if single is None:
+            st.error("Please enter size.")
+            st.stop()
+        sizes_value = str(single)
+
+    elif jacket_type == "Custom / More than 2":
+        sizes_value = "Read Chat"
 
     balance = price - received
 
