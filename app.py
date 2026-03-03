@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import os
 import extra_streamlit_components as stx
@@ -11,36 +11,38 @@ from reportlab.lib.pagesizes import landscape, A4
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # =====================================================
-# CLEAN DARK THEME (NO PINK BORDERS)
+# DARK THEME + CLEAN DROPDOWNS
 # =====================================================
 
 st.markdown("""
 <style>
 
-/* Background */
+/* Main background */
 .stApp {
     background-color: #0f1117;
     color: white;
 }
 
-/* Remove pink outlines */
-input, textarea, select {
-    border: 1px solid #333 !important;
+/* Dropdown box */
+div[data-baseweb="select"] > div {
+    background-color: #1e222b !important;
+    color: white !important;
 }
 
-/* Dropdowns */
-.stSelectbox > div > div {
-    background-color: #1c1f26;
-    color: white;
+/* Dropdown menu items */
+ul {
+    background-color: #232833 !important;
+}
+
+li {
+    color: white !important;
 }
 
 /* Inputs */
-.stTextInput input,
-.stNumberInput input,
-.stDateInput input,
-textarea {
+input, textarea {
     background-color: #1c1f26 !important;
     color: white !important;
+    border: 1px solid #333 !important;
 }
 
 /* Buttons */
@@ -49,13 +51,14 @@ textarea {
     color: white;
     border-radius: 8px;
     border: none;
+    padding: 0.4rem 1rem;
 }
 
 .stButton > button:hover {
     background-color: #ff6f9c;
 }
 
-/* Reduce header spacing */
+/* Reduce top padding */
 .block-container {
     padding-top: 1rem;
 }
@@ -64,12 +67,12 @@ textarea {
 """, unsafe_allow_html=True)
 
 # =====================================================
-# LOGO HEADER (COMPACT)
+# COMPACT LOGO HEADER
 # =====================================================
 
 st.markdown("""
-<div style='text-align:center; padding:10px 0;'>
-    <div style='font-size:36px; font-weight:700;'>🎀 DressKraft ✨</div>
+<div style='text-align:center; padding:6px 0 12px 0;'>
+    <div style='font-size:34px; font-weight:700;'>🎀 DressKraft ✨</div>
 </div>
 """, unsafe_allow_html=True)
 # =====================================================
@@ -218,7 +221,7 @@ price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
 received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
 remarks = st.text_area("Remarks", key="add_remarks")
 
-if st.button("Add Order"):
+if st.button("Add Order", key="add_order_button"):
 
     if not name_customer:
         st.error("Customer Name is required.")
@@ -276,7 +279,7 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ================= SORT (Descending) =================
+    # ================= SORT (Descending by Est Delivery) =================
 
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
     df_display = df_display.sort_values("__sort", ascending=False)
@@ -321,8 +324,12 @@ if not df.empty:
         key="edit_selector"
     )
 
-    if st.button("Load for Edit", key="load_edit"):
+    col_edit_btn, col_edit_msg = st.columns([1, 2])
 
+    with col_edit_btn:
+        load_clicked = st.button("Load for Edit", key="load_edit")
+
+    if load_clicked:
         st.session_state.edit_row = df.loc[edit_idx].to_dict()
         st.session_state.edit_index = edit_idx
 
@@ -393,30 +400,31 @@ if not df.empty:
             edit_sizes_value = "Read Chat"
 
         edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count_unique")
-        edit_city = st.text_input(
-            "City",
-            value="" if edit["City"] == "-" else edit["City"],
-            key="edit_city_unique"
-        )
+        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city_unique")
 
-        status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+        status_options2 = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
 
         edit_status = st.selectbox(
             "Production Status",
-            status_options,
-            index=status_options.index(edit["Production Status"]) if edit["Production Status"] in status_options else 0,
+            status_options2,
+            index=status_options2.index(edit["Production Status"]) if edit["Production Status"] in status_options2 else 0,
             key="edit_status_unique"
         )
 
         edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price_unique")
         edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received_unique")
-        edit_remarks = st.text_area(
-            "Remarks",
-            value="" if edit["Remarks"] == "-" else edit["Remarks"],
-            key="edit_remarks_unique"
-        )
+        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks_unique")
 
-        if st.button("Update Order", key="update_button_unique"):
+        col_update_btn, col_update_msg = st.columns([1,2])
+
+        with col_update_btn:
+            update_clicked = st.button("Update Order", key="update_button_unique")
+
+        with col_update_msg:
+            if st.session_state.get("update_success", False):
+                st.success("Updated Successfully")
+
+        if update_clicked:
 
             df.loc[st.session_state.edit_index] = {
                 **edit,
@@ -433,9 +441,7 @@ if not df.empty:
             }
 
             df.to_csv(FILE_NAME, index=False)
-            st.success("Order Updated Successfully")
-            del st.session_state.edit_row
-            del st.session_state.edit_index
+            st.session_state.update_success = True
             st.rerun()
 
     # =====================================================
@@ -451,10 +457,19 @@ if not df.empty:
         key="delete_selector_unique"
     )
 
-    if st.button("Delete Selected Order", key="delete_button_unique"):
+    col_delete_btn, col_delete_msg = st.columns([1,2])
+
+    with col_delete_btn:
+        delete_clicked = st.button("Delete Selected Order", key="delete_button_unique")
+
+    with col_delete_msg:
+        if st.session_state.get("delete_success", False):
+            st.success("Deleted Successfully")
+
+    if delete_clicked:
         df = df.drop(delete_idx).reset_index(drop=True)
         df.to_csv(FILE_NAME, index=False)
-        st.success("Deleted Successfully")
+        st.session_state.delete_success = True
         st.rerun()
 
     # =====================================================
