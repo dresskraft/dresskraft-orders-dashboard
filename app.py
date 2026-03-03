@@ -46,8 +46,21 @@ input, textarea {
 """, unsafe_allow_html=True)
 
 st.markdown("""
-<div style='text-align:center; padding:6px 0 12px 0;'>
-    <div style='font-size:34px; font-weight:700;'>🎀 DressKraft ✨</div>
+<style>
+...
+.logo-container {
+    ...
+}
+.logo-text {
+    ...
+}
+...
+</style>
+
+<div class="logo-container">
+    <span class="logo-bow">🎀</span>
+    <span class="logo-text">DressKraft</span>
+    <span class="logo-sparkle">✨</span>
 </div>
 """, unsafe_allow_html=True)
 # ================= HELPERS =================
