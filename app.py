@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import os
-import extra_streamlit_components as stx
 from datetime import datetime, timedelta
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
@@ -63,22 +63,34 @@ input, textarea {
 </div>
 """, unsafe_allow_html=True)
 
-# ================= LOGIN SYSTEM (FINAL STABLE) =================
+# ================= 24 HOUR COOKIE LOGIN =================
 
 PASSWORD = "Diksha@1999"
 
-if "login_expiry" not in st.session_state:
-    st.session_state.login_expiry = None
+cookie_value = components.html(
+    """
+    <script>
+    const cookies = document.cookie;
+    const match = cookies.match(/dresskraft_auth=([^;]+)/);
+    if (match) {
+        document.write(match[1]);
+    } else {
+        document.write("NONE");
+    }
+    </script>
+    """,
+    height=0,
+)
 
-# Check if already logged in and still valid
-if st.session_state.login_expiry:
-    if datetime.now() < st.session_state.login_expiry:
-        authenticated = True
-    else:
+authenticated = False
+
+if cookie_value != "NONE":
+    try:
+        expiry = datetime.fromisoformat(cookie_value.strip())
+        if datetime.now() < expiry:
+            authenticated = True
+    except:
         authenticated = False
-        st.session_state.login_expiry = None
-else:
-    authenticated = False
 
 if not authenticated:
     st.title("Login")
@@ -86,17 +98,32 @@ if not authenticated:
 
     if st.button("Login"):
         if pwd == PASSWORD:
-            st.session_state.login_expiry = datetime.now() + timedelta(hours=24)
-            st.rerun()
+            expiry = datetime.now() + timedelta(hours=24)
+            components.html(
+                f"""
+                <script>
+                document.cookie = "dresskraft_auth={expiry.isoformat()}; max-age=86400; path=/";
+                window.location.reload();
+                </script>
+                """,
+                height=0,
+            )
         else:
             st.error("Incorrect Password")
 
     st.stop()
 
-# Sidebar logout
+# Logout
 if st.sidebar.button("Logout"):
-    st.session_state.login_expiry = None
-    st.rerun()
+    components.html(
+        """
+        <script>
+        document.cookie = "dresskraft_auth=; max-age=0; path=/";
+        window.location.reload();
+        </script>
+        """,
+        height=0,
+    )
 
 # ================= HELPERS =================
 
@@ -134,7 +161,7 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-    # ================= ADD ORDER =================
+# ================= ADD ORDER =================
 
 st.markdown("## ➕ Add Order")
 
