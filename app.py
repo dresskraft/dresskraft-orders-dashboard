@@ -105,25 +105,25 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER
+# ADD ORDER (DYNAMIC FIXED)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
-# BASIC FIELDS (OUTSIDE FORM)
-est_delivery = st.date_input("Est Delivery")
-name_customer = st.text_input("Customer Name")
+est_delivery = st.date_input("Est Delivery", key="add_est")
+name_customer = st.text_input("Customer Name", key="add_name")
 
 addon = st.selectbox(
     "Add-on",
-    ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
+    ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"],
+    key="add_addon"
 )
 
-# DYNAMIC JACKET TYPE OUTSIDE FORM
 jacket_type = st.selectbox(
     "Jacket Type",
-    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
+    key="add_jacket"
 )
 
 sizes_value = "-"
@@ -131,27 +131,27 @@ male = female = single = None
 
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, step=1)
-    female = col2.number_input("Female Size", 30, 60, step=1)
+    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
+    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
 
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, step=1)
+    single = st.number_input("Size", 30, 60, step=1, key="add_single")
 
 elif jacket_type == "Custom / More than 2":
     st.info("Size will be marked as 'Read Chat'")
 
-# REMAINING FIELDS
-count = st.number_input("Count", min_value=1, step=1)
-city = st.text_input("City")
+count = st.number_input("Count", min_value=1, step=1, key="add_count")
+city = st.text_input("City", key="add_city")
 
 production_status = st.selectbox(
     "Production Status",
-    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
+    key="add_status"
 )
 
-price = st.number_input("Price", min_value=0.0, step=1.0)
-received = st.number_input("Received", min_value=0.0, step=1.0)
-remarks = st.text_area("Remarks")
+price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
+received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
+remarks = st.text_area("Remarks", key="add_remarks")
 
 if st.button("Add Order"):
 
@@ -190,7 +190,7 @@ if st.button("Add Order"):
     st.success("Order Added Successfully!")
 
 # =====================================================
-# ALL ORDERS
+# ALL ORDERS (UNCHANGED)
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -219,7 +219,7 @@ if not df.empty:
 
     st.dataframe(df_display, use_container_width=True)
 
-    # EDIT PANEL
+    # EDIT PANEL (UNCHANGED)
 
     st.markdown("### ✏️ Edit Order")
 
@@ -339,7 +339,6 @@ if not df.empty:
             st.rerun()
 
     # DELETE
-
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
@@ -352,16 +351,14 @@ if not df.empty:
         st.success("Deleted")
         st.rerun()
 
-    # CSV DOWNLOAD
-
+    # CSV
     st.download_button(
         "📥 Download CSV",
         df_display.to_csv(index=False).encode(),
         "dresskraft_orders.csv"
     )
 
-    # PDF DOWNLOAD
-
+    # PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
