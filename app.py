@@ -11,67 +11,88 @@ from reportlab.lib.pagesizes import landscape, A4
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # =====================================================
-# PREMIUM BRAND HEADER (OPTION 3)
+# DARK COMPACT PREMIUM THEME
 # =====================================================
 
 st.markdown("""
 <style>
 .stApp {
-    background-color: #FFF6FA;
+    background-color: #121212;
+    color: white;
 }
 
+/* Headings */
+h1, h2, h3, h4 {
+    color: #F8A1C4;
+}
+
+/* Buttons */
 div.stButton > button {
-    background: linear-gradient(90deg, #E75480, #F8A1C4);
+    background: linear-gradient(90deg, #E75480, #F48FB1);
     color: white;
     border-radius: 8px;
     border: none;
-    padding: 8px 18px;
+    padding: 6px 16px;
     font-weight: 600;
+    font-size: 14px;
 }
 
 div.stButton > button:hover {
-    background: linear-gradient(90deg, #D63C6A, #F48FB1);
+    background: linear-gradient(90deg, #D63C6A, #F06292);
 }
 
+/* Select boxes */
 div[data-baseweb="select"] > div {
-    background-color: white;
+    background-color: #1E1E1E;
     border: 1px solid #E75480;
     border-radius: 6px;
+    color: white;
 }
 
+/* Inputs */
 .stTextInput>div>div>input,
 .stNumberInput>div>div>input,
 .stTextArea textarea {
+    background-color: #1E1E1E;
+    color: white;
     border: 1px solid #E75480;
     border-radius: 6px;
+}
+
+/* Reduce top padding */
+.block-container {
+    padding-top: 1.5rem;
 }
 </style>
 """, unsafe_allow_html=True)
 
+# =====================================================
+# COMPACT HEADER
+# =====================================================
+
 st.markdown("""
 <div style="
-    background: linear-gradient(90deg, #F8D7E3, #FFF);
-    padding: 25px;
-    border-radius: 12px;
+    background: linear-gradient(90deg, #1E1E1E, #2A2A2A);
+    padding: 15px;
+    border-radius: 10px;
     text-align: center;
-    margin-bottom: 30px;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.08);
+    margin-bottom: 15px;
+    box-shadow: 0px 3px 10px rgba(0,0,0,0.4);
 ">
-    <span style="font-size:55px;">🎀</span>
+    <span style="font-size:32px;">🎀</span>
     <span style="
-        font-size:44px;
+        font-size:28px;
         font-weight:700;
-        color:black;
+        color:white;
         font-family: Georgia, serif;
-        margin-left:10px;
-        margin-right:6px;
+        margin-left:6px;
+        margin-right:4px;
     ">
         DressKraft
     </span>
-    <span style="color:#E75480;font-size:28px;"> ✨</span>
+    <span style="color:#F8A1C4;font-size:18px;"> ✨</span>
 </div>
 """, unsafe_allow_html=True)
-
 # =====================================================
 # HELPERS
 # =====================================================
@@ -97,7 +118,8 @@ def payment_status_logic(price, received):
     if received == price:
         return "Fully Paid"
     return "-"
-    # =====================================================
+
+# =====================================================
 # LOGIN SYSTEM
 # =====================================================
 
@@ -167,7 +189,7 @@ else:
 # ADD ORDER SECTION
 # =====================================================
 
-st.title("➕ Add Order")
+st.markdown("## ➕ Add Order")
 
 est_delivery = st.date_input("Est Delivery")
 name_customer = st.text_input("Customer Name")
@@ -245,14 +267,13 @@ if st.button("Add Order"):
 # ALL ORDERS SECTION
 # =====================================================
 
-st.title("📋 All Orders")
+st.markdown("## 📋 All Orders")
 
 if not df.empty:
 
     # ================= FILTER =================
 
     df["Production Status"] = df["Production Status"].fillna("-").replace("", "-")
-
     status_options = sorted(df["Production Status"].unique().tolist())
 
     selected_status = st.multiselect(
@@ -278,7 +299,7 @@ if not df.empty:
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    # ================= DATE FORMATTING =================
+    # ================= DATE FORMAT =================
 
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
