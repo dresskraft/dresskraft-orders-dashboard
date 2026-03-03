@@ -63,53 +63,84 @@ input, textarea {
 </div>
 """, unsafe_allow_html=True)
 
-# ================= FINAL HOME SCREEN STABLE LOGIN =================
+# ================= FINAL WORKING LOGIN =================
 
 import streamlit.components.v1 as components
 
 PASSWORD = "Diksha@1999"
 
-# Read login from browser localStorage
-login_value = components.html(
-    """
-    <script>
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# --- Check localStorage AFTER page loads ---
+components.html("""
+<script>
+if (!window.dresskraft_checked) {
+    window.dresskraft_checked = true;
     const expiry = localStorage.getItem("dresskraft_login_expiry");
     if (expiry) {
-        document.write(expiry);
-    } else {
-        document.write("NONE");
+        const now = new Date();
+        const expiryDate = new Date(expiry);
+        if (now < expiryDate) {
+            window.parent.postMessage({type: "dresskraft_login", expiry: expiry}, "*");
+        }
     }
-    </script>
-    """,
-    height=0,
-)
+}
+</script>
+""", height=0)
 
-authenticated = False
+# Listen for JS message
+if not st.session_state.authenticated:
+    login_data = st.session_state.get("login_data")
 
-if login_value != "NONE":
-    try:
-        expiry_time = datetime.fromisoformat(login_value.strip())
-        if datetime.now() < expiry_time:
-            authenticated = True
-    except:
-        authenticated = False
+    if login_data:
+        try:
+            expiry_time = datetime.fromisoformat(login_data)
+            if datetime.now() < expiry_time:
+                st.session_state.authenticated = True
+        except:
+            pass
 
-if not authenticated:
+# Capture postMessage
+if "login_data" not in st.session_state:
+    st.session_state.login_data = None
+
+def handle_message(message):
+    if message["type"] == "dresskraft_login":
+        st.session_state.login_data = message["expiry"]
+        st.rerun()
+
+components.html("""
+<script>
+window.addEventListener("message", (event) => {
+    if (event.data.type === "dresskraft_login") {
+        const streamlitEvent = new CustomEvent("streamlit:setComponentValue", {
+            detail: event.data.expiry
+        });
+        window.dispatchEvent(streamlitEvent);
+    }
+});
+</script>
+""", height=0)
+
+# ================= LOGIN SCREEN =================
+
+if not st.session_state.authenticated:
     st.title("Login")
     pwd = st.text_input("Enter Password", type="password")
 
     if st.button("Login"):
         if pwd == PASSWORD:
             expiry = (datetime.now() + timedelta(hours=24)).isoformat()
-            components.html(
-                f"""
-                <script>
-                localStorage.setItem("dresskraft_login_expiry", "{expiry}");
-                window.location.reload();
-                </script>
-                """,
-                height=0,
-            )
+            st.session_state.authenticated = True
+
+            components.html(f"""
+            <script>
+            localStorage.setItem("dresskraft_login_expiry", "{expiry}");
+            window.location.reload();
+            </script>
+            """, height=0)
+
         else:
             st.error("Incorrect Password")
 
@@ -117,15 +148,12 @@ if not authenticated:
 
 # Logout
 if st.sidebar.button("Logout"):
-    components.html(
-        """
-        <script>
-        localStorage.removeItem("dresskraft_login_expiry");
-        window.location.reload();
-        </script>
-        """,
-        height=0,
-    )
+    components.html("""
+    <script>
+    localStorage.removeItem("dresskraft_login_expiry");
+    window.location.reload();
+    </script>
+    """, height=0)
     
 # ================= HELPERS =================
 
