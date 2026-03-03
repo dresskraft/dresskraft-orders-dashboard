@@ -1,7 +1,6 @@
-import streamlit as st 
-import pandas as pd 
+import streamlit as st
+import pandas as pd
 import os
-import extra_streamlit_components as stx
 from datetime import datetime, timedelta
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
@@ -10,7 +9,7 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK THEME =================
+# ================= DARK THEME + LOGO =================
 
 st.markdown("""
 <style>
@@ -21,7 +20,7 @@ html, body, [class*="css"] {
 }
 
 .logo-container {
-    margin-top: 45px;   /* pushes logo down safely */
+    margin-top: 45px;
     margin-bottom: 25px;
     text-align: center;
 }
@@ -43,18 +42,15 @@ html, body, [class*="css"] {
     margin-left: 6px;
 }
 
-/* Dark dropdown background */
 div[data-baseweb="select"] > div {
     background-color: #1f2937 !important;
 }
 
-/* Dark input boxes */
 input, textarea {
     background-color: #1f2937 !important;
     color: white !important;
 }
 
-/* Buttons */
 .stButton>button {
     background-color: #ec4899;
     color: white;
@@ -98,32 +94,25 @@ def payment_status_logic(price, received):
     if received == price:
         return "Fully Paid"
     return "-"
-# ================= LOGIN SYSTEM (ORIGINAL STABLE 24H VERSION) =================
+
+# ================= STABLE LOGIN (24 HOURS) =================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
 
-cookie_manager = stx.CookieManager()
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+if "login_time" not in st.session_state:
+    st.session_state.login_time = None
 
-cookie = cookie_manager.get("dresskraft_login")
+if st.session_state.authenticated:
+    if st.session_state.login_time:
+        if datetime.now() - st.session_state.login_time > timedelta(hours=24):
+            st.session_state.authenticated = False
+            st.session_state.login_time = None
 
-if cookie:
-    try:
-        user, expiry = cookie.split("|")
-        expiry = datetime.fromisoformat(expiry)
-
-        if datetime.now() < expiry:
-            st.session_state.logged_in = True
-            st.session_state.username = user
-        else:
-            cookie_manager.delete("dresskraft_login")
-    except:
-        cookie_manager.delete("dresskraft_login")
-
-if not st.session_state.logged_in:
+if not st.session_state.authenticated:
 
     st.title("Login")
 
@@ -133,20 +122,10 @@ if not st.session_state.logged_in:
     if st.button("Login"):
 
         if user.lower() in USERS and pwd == PASSWORD:
-
-            expiry = datetime.now() + timedelta(hours=24)
-
-            cookie_manager.set(
-                "dresskraft_login",
-                f"{user}|{expiry.isoformat()}",
-                expires_at=expiry
-            )
-
-            st.session_state.logged_in = True
+            st.session_state.authenticated = True
             st.session_state.username = user
-
+            st.session_state.login_time = datetime.now()
             st.rerun()
-
         else:
             st.error("Invalid credentials")
 
@@ -155,8 +134,8 @@ if not st.session_state.logged_in:
 st.sidebar.markdown(f"### Welcome {st.session_state.username}")
 
 if st.sidebar.button("Logout"):
-    cookie_manager.delete("dresskraft_login")
-    st.session_state.logged_in = False
+    st.session_state.authenticated = False
+    st.session_state.login_time = None
     st.rerun()
 
 # ================= DATA =================
@@ -208,7 +187,7 @@ price = st.number_input("Price", min_value=0.0, key="add_price")
 received = st.number_input("Received", min_value=0.0, key="add_received")
 remarks = st.text_area("Remarks", key="add_remarks")
 
-if st.button("Add Order", key="add_btn"):
+if st.button("Add Order"):
 
     if not name_customer:
         st.error("Customer Name is required.")
@@ -248,15 +227,14 @@ st.markdown("## 📋 All Orders")
 
 if not df.empty:
 
-    # ---------- FILTER ----------
+    # -------- FILTER --------
     df["Production Status"] = df["Production Status"].fillna("-").replace("", "-")
     filter_options = sorted(df["Production Status"].unique().tolist())
 
     selected_status = st.multiselect(
         "Filter Production Status",
         options=filter_options,
-        default=filter_options,
-        key="filter_status"
+        default=filter_options
     )
 
     df_display = df.copy()
@@ -264,17 +242,17 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ---------- AUTO SORT (Oldest → Latest ALWAYS) ----------
+    # -------- AUTO SORT (Oldest → Latest ALWAYS) --------
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
     df_display = df_display.sort_values("__sort", ascending=True)
     df_display = df_display.drop(columns=["__sort"])
 
-    # ---------- PAYMENT STATUS ----------
+    # -------- PAYMENT STATUS --------
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    # ---------- DATE FORMAT ----------
+    # -------- DATE FORMAT --------
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
     ).dt.strftime("%d-%m-%Y")
@@ -285,26 +263,24 @@ if not df.empty:
 
     df_display = df_display.fillna("-")
 
-    # ---------- NUMBER FORMAT ----------
+    # -------- NUMBER FORMAT --------
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
     st.dataframe(df_display, use_container_width=True)
 
-    # ================= EDIT SECTION =================
+    # ================= EDIT =================
 
     st.markdown("### ✏️ Edit Order")
 
     edit_idx = st.selectbox(
         "Select Order to Edit",
         df_display.index,
-        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}",
-        key="edit_selector"
+        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    if st.button("Load for Edit", key="load_edit"):
-
+    if st.button("Load for Edit"):
         st.session_state.edit_row = df.loc[edit_idx].to_dict()
         st.session_state.edit_index = edit_idx
 
@@ -313,14 +289,12 @@ if not df.empty:
         edit = st.session_state.edit_row
 
         edit_name = st.text_input("Customer Name",
-                                  value="" if edit["Name"] == "-" else edit["Name"],
-                                  key="edit_name")
+                                  value="" if edit["Name"] == "-" else edit["Name"])
 
         edit_addon = st.selectbox(
             "Add-on",
             addon_options,
-            index=addon_options.index(edit["Add-on"]) if edit["Add-on"] in addon_options else 0,
-            key="edit_addon"
+            index=addon_options.index(edit["Add-on"]) if edit["Add-on"] in addon_options else 0
         )
 
         size_val = str(edit["Sizes"])
@@ -337,8 +311,7 @@ if not df.empty:
         edit_jacket = st.selectbox(
             "Jacket Type",
             jacket_options,
-            index=jacket_options.index(detected_type),
-            key="edit_jacket"
+            index=jacket_options.index(detected_type)
         )
 
         edit_sizes_value = "-"
@@ -352,8 +325,8 @@ if not df.empty:
                 m, f = 40, 36
 
             col1, col2 = st.columns(2)
-            m_edit = col1.number_input("Male Size", 30, 60, value=m, key="edit_male")
-            f_edit = col2.number_input("Female Size", 30, 60, value=f, key="edit_female")
+            m_edit = col1.number_input("Male Size", 30, 60, value=m)
+            f_edit = col2.number_input("Female Size", 30, 60, value=f)
             edit_sizes_value = f"{m_edit}M | {f_edit}F"
 
         elif edit_jacket == "Single":
@@ -361,35 +334,32 @@ if not df.empty:
                 s = int(size_val)
             except:
                 s = 40
-            s_edit = st.number_input("Size", 30, 60, value=s, key="edit_single")
+            s_edit = st.number_input("Size", 30, 60, value=s)
             edit_sizes_value = str(s_edit)
 
         elif edit_jacket == "Custom / More than 2":
             st.info("Size will be marked as 'Read Chat'")
             edit_sizes_value = "Read Chat"
 
-        edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
+        edit_count = st.number_input("Count", value=int(edit["Count"]))
         edit_city = st.text_input("City",
-                                  value="" if edit["City"] == "-" else edit["City"],
-                                  key="edit_city")
+                                  value="" if edit["City"] == "-" else edit["City"])
 
         edit_status = st.selectbox(
             "Production Status",
             status_options,
-            index=status_options.index(edit["Production Status"]) if edit["Production Status"] in status_options else 0,
-            key="edit_status"
+            index=status_options.index(edit["Production Status"]) if edit["Production Status"] in status_options else 0
         )
 
-        edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price")
-        edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
+        edit_price = st.number_input("Price", value=float(edit["Price"]))
+        edit_received = st.number_input("Received", value=float(edit["Received"]))
         edit_remarks = st.text_area("Remarks",
-                                    value="" if edit["Remarks"] == "-" else edit["Remarks"],
-                                    key="edit_remarks")
+                                    value="" if edit["Remarks"] == "-" else edit["Remarks"])
 
         col_up_btn, col_up_msg = st.columns([1,2])
 
         with col_up_btn:
-            update_click = st.button("Update Order", key="update_btn")
+            update_click = st.button("Update Order")
 
         with col_up_msg:
             if st.session_state.get("update_success", False):
@@ -421,14 +391,13 @@ if not df.empty:
     delete_idx = st.selectbox(
         "Select Order to Delete",
         df_display.index,
-        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}",
-        key="delete_selector"
+        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
     col_del_btn, col_del_msg = st.columns([1,2])
 
     with col_del_btn:
-        delete_click = st.button("Delete Selected Order", key="delete_btn")
+        delete_click = st.button("Delete Selected Order")
 
     with col_del_msg:
         if st.session_state.get("delete_success", False):
