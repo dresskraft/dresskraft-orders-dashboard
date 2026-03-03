@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import os
-import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
@@ -62,6 +62,61 @@ input, textarea {
 </div>
 """, unsafe_allow_html=True)
 
+# ================= 24 HOUR PASSWORD LOGIN (BROWSER STORAGE) =================
+
+PASSWORD = "Diksha@1999"
+
+login_status = components.html(
+    """
+    <script>
+    const expiry = localStorage.getItem("dresskraft_login_expiry");
+    const now = new Date().getTime();
+
+    if (expiry && now < parseInt(expiry)) {
+        document.write("LOGGED_IN");
+    } else {
+        document.write("NOT_LOGGED_IN");
+    }
+    </script>
+    """,
+    height=0,
+)
+
+if "LOGGED_IN" not in login_status:
+
+    st.title("Login")
+    pwd = st.text_input("Enter Password", type="password")
+
+    if st.button("Login"):
+        if pwd == PASSWORD:
+            components.html(
+                """
+                <script>
+                const expiry = new Date().getTime() + (24 * 60 * 60 * 1000);
+                localStorage.setItem("dresskraft_login_expiry", expiry);
+                window.location.reload();
+                </script>
+                """,
+                height=0,
+            )
+        else:
+            st.error("Incorrect Password")
+
+    st.stop()
+
+st.sidebar.markdown("### Welcome")
+
+if st.sidebar.button("Logout"):
+    components.html(
+        """
+        <script>
+        localStorage.removeItem("dresskraft_login_expiry");
+        window.location.reload();
+        </script>
+        """,
+        height=0,
+    )
+
 # ================= HELPERS =================
 
 def format_indian(number):
@@ -85,56 +140,6 @@ def payment_status_logic(price, received):
     if received == price:
         return "Fully Paid"
     return "-"
-
-# ================= 24 HOUR FILE LOGIN =================
-
-USERS = ["srinath", "diksha", "megha"]
-PASSWORD = "Diksha@1999"
-LOGIN_FILE = "login_session.json"
-
-def load_login():
-    if os.path.exists(LOGIN_FILE):
-        try:
-            with open(LOGIN_FILE, "r") as f:
-                data = json.load(f)
-            expiry = datetime.fromisoformat(data["expiry"])
-            if datetime.now() < expiry:
-                return True, data["username"]
-        except:
-            pass
-    return False, None
-
-def save_login(username):
-    expiry = datetime.now() + timedelta(hours=24)
-    data = {"username": username, "expiry": expiry.isoformat()}
-    with open(LOGIN_FILE, "w") as f:
-        json.dump(data, f)
-
-def clear_login():
-    if os.path.exists(LOGIN_FILE):
-        os.remove(LOGIN_FILE)
-
-logged_in, saved_user = load_login()
-
-if not logged_in:
-    st.title("Login")
-    user = st.text_input("Username")
-    pwd = st.text_input("Password", type="password")
-
-    if st.button("Login"):
-        if user.lower() in USERS and pwd == PASSWORD:
-            save_login(user)
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
-
-    st.stop()
-
-st.sidebar.markdown(f"### Welcome {saved_user}")
-
-if st.sidebar.button("Logout"):
-    clear_login()
-    st.rerun()
 
 # ================= DATA =================
 
