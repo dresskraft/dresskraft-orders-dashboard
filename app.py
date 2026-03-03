@@ -43,6 +43,7 @@ def payment_status_logic(price, received):
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
+
 cookie_manager = stx.CookieManager()
 
 if "logged_in" not in st.session_state:
@@ -104,57 +105,56 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER (JACKET TYPE AFTER ADD-ON)
+# ADD ORDER
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
-with st.form("order_form", clear_on_submit=True):
+# BASIC FIELDS (OUTSIDE FORM)
+est_delivery = st.date_input("Est Delivery")
+name_customer = st.text_input("Customer Name")
 
-    est_delivery = st.date_input("Est Delivery")
-    name_customer = st.text_input("Customer Name")
+addon = st.selectbox(
+    "Add-on",
+    ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
+)
 
-    addon = st.selectbox(
-        "Add-on",
-        ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
-    )
+# DYNAMIC JACKET TYPE OUTSIDE FORM
+jacket_type = st.selectbox(
+    "Jacket Type",
+    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+)
 
-    # Jacket Type moved here
-    jacket_type = st.selectbox(
-        "Jacket Type",
-        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-    )
+sizes_value = "-"
+male = female = single = None
 
-    sizes_value = "-"
-    male = female = single = None
+if jacket_type == "Couple (M + F)":
+    col1, col2 = st.columns(2)
+    male = col1.number_input("Male Size", 30, 60, step=1)
+    female = col2.number_input("Female Size", 30, 60, step=1)
 
-    if jacket_type == "Couple (M + F)":
-        col1, col2 = st.columns(2)
-        male = col1.number_input("Male Size", 30, 60, step=1)
-        female = col2.number_input("Female Size", 30, 60, step=1)
+elif jacket_type == "Single":
+    single = st.number_input("Size", 30, 60, step=1)
 
-    elif jacket_type == "Single":
-        single = st.number_input("Size", 30, 60, step=1)
+elif jacket_type == "Custom / More than 2":
+    st.info("Size will be marked as 'Read Chat'")
 
-    elif jacket_type == "Custom / More than 2":
-        st.info("Size will be marked as 'Read Chat'")
+# REMAINING FIELDS
+count = st.number_input("Count", min_value=1, step=1)
+city = st.text_input("City")
 
-    count = st.number_input("Count", min_value=1, step=1)
-    city = st.text_input("City")
+production_status = st.selectbox(
+    "Production Status",
+    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+)
 
-    production_status = st.selectbox(
-        "Production Status",
-        ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
-    )
+price = st.number_input("Price", min_value=0.0, step=1.0)
+received = st.number_input("Received", min_value=0.0, step=1.0)
+remarks = st.text_area("Remarks")
 
-    price = st.number_input("Price", min_value=0.0, step=1.0)
-    received = st.number_input("Received", min_value=0.0, step=1.0)
-    remarks = st.text_area("Remarks")
+if st.button("Add Order"):
 
-    submitted = st.form_submit_button("Add Order")
-
-if submitted:
     if not name_customer:
         st.error("Customer Name is required.")
         st.stop()
@@ -220,6 +220,7 @@ if not df.empty:
     st.dataframe(df_display, use_container_width=True)
 
     # EDIT PANEL
+
     st.markdown("### ✏️ Edit Order")
 
     edit_idx = st.selectbox(
@@ -338,6 +339,7 @@ if not df.empty:
             st.rerun()
 
     # DELETE
+
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
@@ -350,14 +352,16 @@ if not df.empty:
         st.success("Deleted")
         st.rerun()
 
-    # CSV
+    # CSV DOWNLOAD
+
     st.download_button(
         "📥 Download CSV",
         df_display.to_csv(index=False).encode(),
         "dresskraft_orders.csv"
     )
 
-    # PDF
+    # PDF DOWNLOAD
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
