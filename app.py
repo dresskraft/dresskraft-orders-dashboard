@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import extra_streamlit_components as stx
 from datetime import datetime, timedelta
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
@@ -9,7 +10,7 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK THEME + LOGO =================
+# ================= DARK THEME =================
 
 st.markdown("""
 <style>
@@ -95,24 +96,35 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= STABLE LOGIN (24 HOURS) =================
+# ================= 24 HOUR PERSISTENT LOGIN =================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+cookie_manager = stx.CookieManager()
 
-if "login_time" not in st.session_state:
-    st.session_state.login_time = None
+if not cookie_manager.ready():
+    st.stop()
 
-if st.session_state.authenticated:
-    if st.session_state.login_time:
-        if datetime.now() - st.session_state.login_time > timedelta(hours=24):
-            st.session_state.authenticated = False
-            st.session_state.login_time = None
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-if not st.session_state.authenticated:
+cookie = cookie_manager.get("dresskraft_login")
+
+if cookie:
+    try:
+        user, expiry_str = cookie.split("|")
+        expiry = datetime.fromisoformat(expiry_str)
+
+        if datetime.now() < expiry:
+            st.session_state.logged_in = True
+            st.session_state.username = user
+        else:
+            cookie_manager.delete("dresskraft_login")
+    except:
+        cookie_manager.delete("dresskraft_login")
+
+if not st.session_state.logged_in:
 
     st.title("Login")
 
@@ -122,10 +134,20 @@ if not st.session_state.authenticated:
     if st.button("Login"):
 
         if user.lower() in USERS and pwd == PASSWORD:
-            st.session_state.authenticated = True
+
+            expiry = datetime.now() + timedelta(hours=24)
+
+            cookie_manager.set(
+                "dresskraft_login",
+                f"{user}|{expiry.isoformat()}",
+                expires_at=expiry
+            )
+
+            st.session_state.logged_in = True
             st.session_state.username = user
-            st.session_state.login_time = datetime.now()
+
             st.rerun()
+
         else:
             st.error("Invalid credentials")
 
@@ -134,8 +156,8 @@ if not st.session_state.authenticated:
 st.sidebar.markdown(f"### Welcome {st.session_state.username}")
 
 if st.sidebar.button("Logout"):
-    st.session_state.authenticated = False
-    st.session_state.login_time = None
+    cookie_manager.delete("dresskraft_login")
+    st.session_state.logged_in = False
     st.rerun()
 
 # ================= DATA =================
