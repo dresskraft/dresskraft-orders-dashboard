@@ -104,30 +104,11 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER (UNCHANGED)
+# ADD ORDER (JACKET TYPE AFTER ADD-ON)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
-
-jacket_type = st.selectbox(
-    "Jacket Type",
-    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-)
-
-sizes_value = "-"
-male = female = single = None
-
-if jacket_type == "Couple (M + F)":
-    col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, step=1)
-    female = col2.number_input("Female Size", 30, 60, step=1)
-
-elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, step=1)
-
-elif jacket_type == "Custom / More than 2":
-    st.info("Size will be marked as 'Read Chat'")
 
 with st.form("order_form", clear_on_submit=True):
 
@@ -138,6 +119,26 @@ with st.form("order_form", clear_on_submit=True):
         "Add-on",
         ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
     )
+
+    # Jacket Type moved here
+    jacket_type = st.selectbox(
+        "Jacket Type",
+        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+    )
+
+    sizes_value = "-"
+    male = female = single = None
+
+    if jacket_type == "Couple (M + F)":
+        col1, col2 = st.columns(2)
+        male = col1.number_input("Male Size", 30, 60, step=1)
+        female = col2.number_input("Female Size", 30, 60, step=1)
+
+    elif jacket_type == "Single":
+        single = st.number_input("Size", 30, 60, step=1)
+
+    elif jacket_type == "Custom / More than 2":
+        st.info("Size will be marked as 'Read Chat'")
 
     count = st.number_input("Count", min_value=1, step=1)
     city = st.text_input("City")
@@ -218,10 +219,7 @@ if not df.empty:
 
     st.dataframe(df_display, use_container_width=True)
 
-    # =========================
     # EDIT PANEL
-    # =========================
-
     st.markdown("### ✏️ Edit Order")
 
     edit_idx = st.selectbox(
@@ -245,8 +243,6 @@ if not df.empty:
     if "edit_row" in st.session_state:
 
         edit = st.session_state.edit_row
-
-        st.markdown("#### Update Details")
 
         edit_name = st.text_input("Customer Name",
                                   value="" if edit["Name"] == "-" else edit["Name"])
@@ -341,8 +337,7 @@ if not df.empty:
             del st.session_state.edit_index
             st.rerun()
 
-    # DELETE + DOWNLOAD (UNCHANGED)
-
+    # DELETE
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
@@ -355,12 +350,14 @@ if not df.empty:
         st.success("Deleted")
         st.rerun()
 
+    # CSV
     st.download_button(
         "📥 Download CSV",
         df_display.to_csv(index=False).encode(),
         "dresskraft_orders.csv"
     )
 
+    # PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
