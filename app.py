@@ -231,7 +231,18 @@ if not df.empty:
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    st.dataframe(df_display, use_container_width=True)
+    # ===== REORDER COLUMNS (Move Look after Name) =====
+
+columns = df_display.columns.tolist()
+
+if "Look" in columns:
+    columns.remove("Look")
+    name_index = columns.index("Name")
+    columns.insert(name_index + 1, "Look")
+
+df_display = df_display[columns]
+
+st.dataframe(df_display, use_container_width=True)
 
     # =====================================================
     # EDIT SECTION
