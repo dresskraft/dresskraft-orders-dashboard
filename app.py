@@ -14,47 +14,58 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 st.markdown("""
 <style>
-.stApp { background-color: #0f1117; color: white; }
 
-div[data-baseweb="select"] > div {
-    background-color: #1e222b !important;
-    color: white !important;
+html, body, [class*="css"] {
+    background-color: #0e1117;
+    color: #ffffff;
 }
 
-ul { background-color: #232833 !important; }
-li { color: white !important; }
-
-input, textarea {
-    background-color: #1c1f26 !important;
-    color: white !important;
-    border: 1px solid #333 !important;
+.logo-container {
+    margin-top: 45px;   /* pushes logo down safely */
+    margin-bottom: 25px;
+    text-align: center;
 }
 
-.stButton > button {
-    background-color: #e75480;
+.logo-text {
+    font-size: 34px;
+    font-weight: 700;
     color: white;
-    border-radius: 8px;
+    letter-spacing: 1px;
+}
+
+.logo-bow {
+    font-size: 28px;
+    margin-right: 6px;
+}
+
+.logo-sparkle {
+    font-size: 22px;
+    margin-left: 6px;
+}
+
+/* Dark dropdown background */
+div[data-baseweb="select"] > div {
+    background-color: #1f2937 !important;
+}
+
+/* Dark input boxes */
+input, textarea {
+    background-color: #1f2937 !important;
+    color: white !important;
+}
+
+/* Buttons */
+.stButton>button {
+    background-color: #ec4899;
+    color: white;
+    border-radius: 6px;
     border: none;
 }
 
-.stButton > button:hover {
-    background-color: #ff6f9c;
+.stButton>button:hover {
+    background-color: #db2777;
 }
 
-.block-container { padding-top: 1rem; }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
-...
-.logo-container {
-    ...
-}
-.logo-text {
-    ...
-}
-...
 </style>
 
 <div class="logo-container">
@@ -63,6 +74,7 @@ st.markdown("""
     <span class="logo-sparkle">✨</span>
 </div>
 """, unsafe_allow_html=True)
+
 # ================= HELPERS =================
 
 def format_indian(number):
@@ -87,10 +99,11 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= LOGIN SYSTEM =================
+# ================= LOGIN SYSTEM (24 HOUR EXPIRY) =================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
+
 cookie_manager = stx.CookieManager()
 
 if "logged_in" not in st.session_state:
@@ -111,26 +124,32 @@ if cookie:
         cookie_manager.delete("dresskraft_login")
 
 if not st.session_state.logged_in:
+
     st.title("Login")
+
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
 
     if st.button("Login"):
         if user.lower() in USERS and pwd == PASSWORD:
             expiry = datetime.now() + timedelta(hours=24)
+
             cookie_manager.set(
                 "dresskraft_login",
                 f"{user}|{expiry.isoformat()}",
                 expires_at=expiry
             )
+
             st.session_state.logged_in = True
             st.session_state.username = user
             st.rerun()
         else:
             st.error("Invalid credentials")
+
     st.stop()
 
-st.sidebar.markdown(f"### 👋 Welcome {st.session_state.username}")
+st.sidebar.markdown(f"### Welcome {st.session_state.username}")
+
 if st.sidebar.button("Logout"):
     cookie_manager.delete("dresskraft_login")
     st.session_state.logged_in = False
@@ -148,8 +167,7 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-
-# ================= ADD ORDER SECTION =================
+    # ================= ADD ORDER SECTION =================
 
 st.markdown("## ➕ Add Order")
 
@@ -159,8 +177,8 @@ name_customer = st.text_input("Customer Name", key="add_name")
 addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
 addon = st.selectbox("Add-on", addon_options, key="add_addon")
 
-jacket_type_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-jacket_type = st.selectbox("Jacket Type", jacket_type_options, key="add_jacket")
+jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+jacket_type = st.selectbox("Jacket Type", jacket_options, key="add_jacket")
 
 sizes_value = "-"
 male = female = single = None
@@ -186,7 +204,7 @@ price = st.number_input("Price", min_value=0.0, key="add_price")
 received = st.number_input("Received", min_value=0.0, key="add_received")
 remarks = st.text_area("Remarks", key="add_remarks")
 
-if st.button("Add Order", key="add_order_btn"):
+if st.button("Add Order", key="add_btn"):
 
     if not name_customer:
         st.error("Customer Name is required.")
@@ -219,23 +237,21 @@ if st.button("Add Order", key="add_order_btn"):
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(FILE_NAME, index=False)
     st.success("Order Added Successfully!")
-    # =====================================================
-# ALL ORDERS SECTION
-# =====================================================
+
+# ================= ALL ORDERS SECTION =================
 
 st.markdown("## 📋 All Orders")
 
 if not df.empty:
 
-    # ================= FILTER =================
-
+    # ---------- FILTER ----------
     df["Production Status"] = df["Production Status"].fillna("-").replace("", "-")
-    status_options = sorted(df["Production Status"].unique().tolist())
+    filter_options = sorted(df["Production Status"].unique().tolist())
 
     selected_status = st.multiselect(
         "Filter Production Status",
-        options=status_options,
-        default=status_options,
+        options=filter_options,
+        default=filter_options,
         key="filter_status"
     )
 
@@ -244,20 +260,17 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ================= AUTO SORT (Oldest → Latest) =================
-
+    # ---------- AUTO SORT (Oldest → Latest ALWAYS) ----------
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
     df_display = df_display.sort_values("__sort", ascending=True)
     df_display = df_display.drop(columns=["__sort"])
 
-    # ================= PAYMENT STATUS =================
-
+    # ---------- PAYMENT STATUS ----------
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    # ================= DATE FORMAT =================
-
+    # ---------- DATE FORMAT ----------
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
     ).dt.strftime("%d-%m-%Y")
@@ -268,17 +281,14 @@ if not df.empty:
 
     df_display = df_display.fillna("-")
 
-    # ================= NUMBER FORMAT =================
-
+    # ---------- NUMBER FORMAT ----------
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
     st.dataframe(df_display, use_container_width=True)
 
-    # =====================================================
-    # EDIT SECTION
-    # =====================================================
+    # ================= EDIT SECTION =================
 
     st.markdown("### ✏️ Edit Order")
 
@@ -290,6 +300,7 @@ if not df.empty:
     )
 
     if st.button("Load for Edit", key="load_edit"):
+
         st.session_state.edit_row = df.loc[edit_idx].to_dict()
         st.session_state.edit_index = edit_idx
 
@@ -297,19 +308,15 @@ if not df.empty:
 
         edit = st.session_state.edit_row
 
-        edit_name = st.text_input(
-            "Customer Name",
-            value="" if edit["Name"] == "-" else edit["Name"],
-            key="edit_name"
-        )
-
-        addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
+        edit_name = st.text_input("Customer Name",
+                                  value="" if edit["Name"] == "-" else edit["Name"],
+                                  key="edit_name")
 
         edit_addon = st.selectbox(
             "Add-on",
             addon_options,
             index=addon_options.index(edit["Add-on"]) if edit["Add-on"] in addon_options else 0,
-            key="edit_addon_unique"
+            key="edit_addon"
         )
 
         size_val = str(edit["Sizes"])
@@ -323,18 +330,16 @@ if not df.empty:
         else:
             detected_type = "Single"
 
-        jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-
-        edit_jacket_type = st.selectbox(
+        edit_jacket = st.selectbox(
             "Jacket Type",
             jacket_options,
             index=jacket_options.index(detected_type),
-            key="edit_jacket_unique"
+            key="edit_jacket"
         )
 
         edit_sizes_value = "-"
 
-        if edit_jacket_type == "Couple (M + F)":
+        if edit_jacket == "Couple (M + F)":
             try:
                 m, f = size_val.replace("M","").replace("F","").split("|")
                 m = int(m.strip())
@@ -343,48 +348,50 @@ if not df.empty:
                 m, f = 40, 36
 
             col1, col2 = st.columns(2)
-            m_edit = col1.number_input("Male Size", 30, 60, value=m, key="edit_male_unique")
-            f_edit = col2.number_input("Female Size", 30, 60, value=f, key="edit_female_unique")
+            m_edit = col1.number_input("Male Size", 30, 60, value=m, key="edit_male")
+            f_edit = col2.number_input("Female Size", 30, 60, value=f, key="edit_female")
             edit_sizes_value = f"{m_edit}M | {f_edit}F"
 
-        elif edit_jacket_type == "Single":
+        elif edit_jacket == "Single":
             try:
                 s = int(size_val)
             except:
                 s = 40
-            s_edit = st.number_input("Size", 30, 60, value=s, key="edit_single_unique")
+            s_edit = st.number_input("Size", 30, 60, value=s, key="edit_single")
             edit_sizes_value = str(s_edit)
 
-        elif edit_jacket_type == "Custom / More than 2":
+        elif edit_jacket == "Custom / More than 2":
             st.info("Size will be marked as 'Read Chat'")
             edit_sizes_value = "Read Chat"
 
-        edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count_unique")
-        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city_unique")
-
-        status_options2 = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+        edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
+        edit_city = st.text_input("City",
+                                  value="" if edit["City"] == "-" else edit["City"],
+                                  key="edit_city")
 
         edit_status = st.selectbox(
             "Production Status",
-            status_options2,
-            index=status_options2.index(edit["Production Status"]) if edit["Production Status"] in status_options2 else 0,
-            key="edit_status_unique"
+            status_options,
+            index=status_options.index(edit["Production Status"]) if edit["Production Status"] in status_options else 0,
+            key="edit_status"
         )
 
-        edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price_unique")
-        edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received_unique")
-        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks_unique")
+        edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price")
+        edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
+        edit_remarks = st.text_area("Remarks",
+                                    value="" if edit["Remarks"] == "-" else edit["Remarks"],
+                                    key="edit_remarks")
 
-        col_update_btn, col_update_msg = st.columns([1,2])
+        col_up_btn, col_up_msg = st.columns([1,2])
 
-        with col_update_btn:
-            update_clicked = st.button("Update Order", key="update_button_unique")
+        with col_up_btn:
+            update_click = st.button("Update Order", key="update_btn")
 
-        with col_update_msg:
+        with col_up_msg:
             if st.session_state.get("update_success", False):
                 st.success("Updated Successfully")
 
-        if update_clicked:
+        if update_click:
             df.loc[st.session_state.edit_index] = {
                 **edit,
                 "Name": edit_name,
@@ -403,9 +410,7 @@ if not df.empty:
             st.session_state.update_success = True
             st.rerun()
 
-    # =====================================================
-    # DELETE SECTION
-    # =====================================================
+    # ================= DELETE =================
 
     st.markdown("### 🗑 Delete Order")
 
@@ -413,27 +418,25 @@ if not df.empty:
         "Select Order to Delete",
         df_display.index,
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}",
-        key="delete_selector_unique"
+        key="delete_selector"
     )
 
-    col_delete_btn, col_delete_msg = st.columns([1,2])
+    col_del_btn, col_del_msg = st.columns([1,2])
 
-    with col_delete_btn:
-        delete_clicked = st.button("Delete Selected Order", key="delete_button_unique")
+    with col_del_btn:
+        delete_click = st.button("Delete Selected Order", key="delete_btn")
 
-    with col_delete_msg:
+    with col_del_msg:
         if st.session_state.get("delete_success", False):
             st.success("Deleted Successfully")
 
-    if delete_clicked:
+    if delete_click:
         df = df.drop(delete_idx).reset_index(drop=True)
         df.to_csv(FILE_NAME, index=False)
         st.session_state.delete_success = True
         st.rerun()
 
-    # =====================================================
-    # CSV DOWNLOAD
-    # =====================================================
+    # ================= CSV =================
 
     st.download_button(
         "📥 Download CSV",
@@ -441,14 +444,11 @@ if not df.empty:
         "dresskraft_orders.csv"
     )
 
-    # =====================================================
-    # PDF DOWNLOAD
-    # =====================================================
+    # ================= PDF =================
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
-
     table = Table(data)
     table.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.grey),
@@ -456,7 +456,6 @@ if not df.empty:
         ('GRID',(0,0),(-1,-1),0.25,colors.grey),
         ('FONTSIZE',(0,0),(-1,-1),6),
     ]))
-
     doc.build([table])
 
     st.download_button(
