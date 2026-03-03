@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-import extra_streamlit_components as stx
+import json
 from datetime import datetime, timedelta
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
@@ -29,7 +29,6 @@ html, body, [class*="css"] {
     font-size: 34px;
     font-weight: 700;
     color: white;
-    letter-spacing: 1px;
 }
 
 .logo-bow { font-size: 28px; margin-right: 6px; }
@@ -87,58 +86,54 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= 24 HOUR LOGIN (PERSISTENT) =================
+# ================= 24 HOUR FILE LOGIN =================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
+LOGIN_FILE = "login_session.json"
 
-cookie_manager = stx.CookieManager()
+def load_login():
+    if os.path.exists(LOGIN_FILE):
+        try:
+            with open(LOGIN_FILE, "r") as f:
+                data = json.load(f)
+            expiry = datetime.fromisoformat(data["expiry"])
+            if datetime.now() < expiry:
+                return True, data["username"]
+        except:
+            pass
+    return False, None
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+def save_login(username):
+    expiry = datetime.now() + timedelta(hours=24)
+    data = {"username": username, "expiry": expiry.isoformat()}
+    with open(LOGIN_FILE, "w") as f:
+        json.dump(data, f)
 
-cookie = cookie_manager.get("dresskraft_login")
+def clear_login():
+    if os.path.exists(LOGIN_FILE):
+        os.remove(LOGIN_FILE)
 
-if cookie and not st.session_state.logged_in:
-    try:
-        user, expiry_str = cookie.split("|")
-        expiry = datetime.fromisoformat(expiry_str)
-        if datetime.now() < expiry:
-            st.session_state.logged_in = True
-            st.session_state.username = user
-        else:
-            cookie_manager.delete("dresskraft_login")
-    except:
-        cookie_manager.delete("dresskraft_login")
+logged_in, saved_user = load_login()
 
-if not st.session_state.logged_in:
-
+if not logged_in:
     st.title("Login")
-
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
 
     if st.button("Login"):
         if user.lower() in USERS and pwd == PASSWORD:
-            expiry = datetime.now() + timedelta(hours=24)
-            cookie_manager.set(
-                "dresskraft_login",
-                f"{user}|{expiry.isoformat()}",
-                expires_at=expiry
-            )
-            st.session_state.logged_in = True
-            st.session_state.username = user
+            save_login(user)
             st.rerun()
         else:
             st.error("Invalid credentials")
 
     st.stop()
 
-st.sidebar.markdown(f"### Welcome {st.session_state.username}")
+st.sidebar.markdown(f"### Welcome {saved_user}")
 
 if st.sidebar.button("Logout"):
-    cookie_manager.delete("dresskraft_login")
-    st.session_state.logged_in = False
+    clear_login()
     st.rerun()
 
 # ================= DATA =================
