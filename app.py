@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK THEME CLEAN STYLING =================
+# ================= DARK UI =================
 
 st.markdown("""
 <style>
@@ -29,26 +29,6 @@ div[data-baseweb="select"] > div {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# ================= LOGIN SYSTEM (SECRETS BASED) =================
-
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if not st.session_state.authenticated:
-
-    st.title("🔐 Login")
-
-    pwd = st.text_input("Enter Password", type="password")
-
-    if st.button("Login"):
-        if pwd == st.secrets["APP_PASSWORD"]:
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("Incorrect Password")
-
-    st.stop()
 
 # ================= HELPERS =================
 
@@ -179,7 +159,7 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # ===== Auto Sort by Est Delivery (Ascending) =====
+    # ===== Auto Sort by Est Delivery (Ascending Default) =====
     df["__sort"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
     df = df.sort_values("__sort", ascending=True)
     df = df.drop(columns=["__sort"])
@@ -351,7 +331,7 @@ if not df.empty:
             del st.session_state.edit_index
             st.rerun()
 
-    # ================= DELETE =================
+    # ================= DELETE SECTION =================
 
     idx = st.selectbox(
         "Delete Order",
