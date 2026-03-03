@@ -63,30 +63,18 @@ input, textarea {
 </div>
 """, unsafe_allow_html=True)
 
-# ================= 24 HOUR COOKIE LOGIN =================
+# ================= FINAL 24H LOGIN (QUERY PARAM METHOD) =================
 
 PASSWORD = "Diksha@1999"
 
-cookie_value = components.html(
-    """
-    <script>
-    const cookies = document.cookie;
-    const match = cookies.match(/dresskraft_auth=([^;]+)/);
-    if (match) {
-        document.write(match[1]);
-    } else {
-        document.write("NONE");
-    }
-    </script>
-    """,
-    height=0,
-)
+# Read token from URL
+query_params = st.query_params
 
 authenticated = False
 
-if cookie_value != "NONE":
+if "auth" in query_params and "expiry" in query_params:
     try:
-        expiry = datetime.fromisoformat(cookie_value.strip())
+        expiry = datetime.fromisoformat(query_params["expiry"])
         if datetime.now() < expiry:
             authenticated = True
     except:
@@ -98,16 +86,12 @@ if not authenticated:
 
     if st.button("Login"):
         if pwd == PASSWORD:
-            expiry = datetime.now() + timedelta(hours=24)
-            components.html(
-                f"""
-                <script>
-                document.cookie = "dresskraft_auth={expiry.isoformat()}; max-age=86400; path=/";
-                window.location.reload();
-                </script>
-                """,
-                height=0,
-            )
+            expiry_time = (datetime.now() + timedelta(hours=24)).isoformat()
+            st.query_params.update({
+                "auth": "true",
+                "expiry": expiry_time
+            })
+            st.rerun()
         else:
             st.error("Incorrect Password")
 
@@ -115,15 +99,8 @@ if not authenticated:
 
 # Logout
 if st.sidebar.button("Logout"):
-    components.html(
-        """
-        <script>
-        document.cookie = "dresskraft_auth=; max-age=0; path=/";
-        window.location.reload();
-        </script>
-        """,
-        height=0,
-    )
+    st.query_params.clear()
+    st.rerun()
 
 # ================= HELPERS =================
 
