@@ -37,6 +37,11 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
+def reset_serial_numbers(dataframe):
+    dataframe = dataframe.reset_index(drop=True)
+    dataframe.insert(0, "Sr No.", range(1, len(dataframe) + 1))
+    return dataframe
+
 # =====================================================
 # LOGIN SYSTEM
 # =====================================================
@@ -102,6 +107,12 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
+
+# Ensure Sr No always exists and is correct
+if "Sr No." not in df.columns:
+    df = reset_serial_numbers(df)
+else:
+    df = reset_serial_numbers(df)
 
 # =====================================================
 # ADD ORDER SECTION
@@ -184,11 +195,12 @@ if st.button("Add Order"):
         "Order Entry Date": datetime.today()
     }
 
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    df = pd.concat([df.drop(columns=["Sr No."]), pd.DataFrame([new_row])], ignore_index=True)
+    df = reset_serial_numbers(df)
     df.to_csv(FILE_NAME, index=False)
-    st.success("Order Added Successfully!")
 
-# =====================================================
+    st.success("Order Added Successfully!")
+    # =====================================================
 # ALL ORDERS SECTION
 # =====================================================
 
@@ -196,9 +208,11 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # FILTER ADDED
-    status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
-    status_options = sorted(list(set(status_options)))
+    # ================= FILTER =================
+
+    df["Production Status"] = df["Production Status"].fillna("-").replace("", "-")
+
+    status_options = sorted(df["Production Status"].unique().tolist())
 
     selected_status = st.multiselect(
         "Filter Production Status",
@@ -207,19 +221,23 @@ if not df.empty:
     )
 
     df_display = df.copy()
-    df_display["Production Status"] = df_display["Production Status"].fillna("-").replace("", "-")
 
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # AUTO SORT
+    # ================= SORT DESCENDING =================
+
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
-    df_display = df_display.sort_values("__sort")
+    df_display = df_display.sort_values("__sort", ascending=False)
     df_display = df_display.drop(columns=["__sort"])
+
+    # ================= PAYMENT STATUS =================
 
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
+
+    # ================= DATE FORMATTING =================
 
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
@@ -231,28 +249,38 @@ if not df.empty:
 
     df_display = df_display.fillna("-")
 
+    # ================= INDIAN NUMBER FORMAT =================
+
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
+    # Ensure Sr No remains first column
+    ordered_cols = ["Sr No."] + [col for col in df_display.columns if col != "Sr No."]
+    df_display = df_display[ordered_cols]
+
     st.dataframe(df_display, use_container_width=True)
 
-    # ================= EDIT =================
+    # =====================================================
+    # EDIT SECTION
+    # =====================================================
 
     st.markdown("### ✏️ Edit Order")
 
     edit_idx = st.selectbox(
         "Select Order to Edit",
-        df_display.index,
-        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
+        df_display["Sr No."],
+        format_func=lambda x: f"{df_display[df_display['Sr No.']==x]['Name'].values[0]} - "
+                              f"{df_display[df_display['Sr No.']==x]['Est Delivery'].values[0]}"
     )
 
     col_load, col_msg = st.columns([1,2])
 
     with col_load:
         if st.button("Load for Edit"):
-            st.session_state.edit_row = df.loc[edit_idx].to_dict()
-            st.session_state.edit_index = edit_idx
+            original_index = df[df["Sr No."] == edit_idx].index[0]
+            st.session_state.edit_row = df.loc[original_index].to_dict()
+            st.session_state.edit_index = original_index
 
     with col_msg:
         if "update_success" in st.session_state and st.session_state.update_success:
@@ -271,10 +299,12 @@ if not df.empty:
 
         addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
 
+        addon_value = edit["Add-on"] if edit["Add-on"] in addon_options else "-- Select --"
+
         edit_addon = st.selectbox(
             "Add-on",
             addon_options,
-            index=0 if edit["Add-on"] == "-" else addon_options.index(edit["Add-on"]),
+            index=addon_options.index(addon_value),
             key="edit_addon"
         )
 
@@ -299,6 +329,7 @@ if not df.empty:
         )
 
         edit_sizes_value = "-"
+                # ================= DYNAMIC SIZE EDIT =================
 
         if edit_jacket_type == "Couple (M + F)":
             try:
@@ -325,26 +356,55 @@ if not df.empty:
             st.info("Size will be marked as 'Read Chat'")
             edit_sizes_value = "Read Chat"
 
-        edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
-        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city")
+        edit_count = st.number_input(
+            "Count",
+            value=int(edit["Count"]),
+            key="edit_count"
+        )
 
-        status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+        edit_city = st.text_input(
+            "City",
+            value="" if edit["City"] == "-" else edit["City"],
+            key="edit_city"
+        )
+
+        status_options = ["-- Select --","To Start","Ongoing",
+                          "Pending for Payment","Paid - To Dispatch","Dispatched"]
+
+        status_value = edit["Production Status"] if edit["Production Status"] in status_options else "-- Select --"
 
         edit_status = st.selectbox(
             "Production Status",
             status_options,
-            index=0 if edit["Production Status"] == "-" else status_options.index(edit["Production Status"]),
+            index=status_options.index(status_value),
             key="edit_status"
         )
 
-        edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price")
-        edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
-        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks")
+        edit_price = st.number_input(
+            "Price",
+            value=float(edit["Price"]),
+            key="edit_price"
+        )
+
+        edit_received = st.number_input(
+            "Received",
+            value=float(edit["Received"]),
+            key="edit_received"
+        )
+
+        edit_remarks = st.text_area(
+            "Remarks",
+            value="" if edit["Remarks"] == "-" else edit["Remarks"],
+            key="edit_remarks"
+        )
+
+        # ================= UPDATE ORDER =================
 
         if st.button("Update Order"):
 
             df.loc[st.session_state.edit_index] = {
-                **edit,
+                "Sr No.": edit["Sr No."],
+                "Est Delivery": edit["Est Delivery"],
                 "Name": edit_name,
                 "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
                 "Sizes": edit_sizes_value,
@@ -354,30 +414,44 @@ if not df.empty:
                 "Price": edit_price,
                 "Received": edit_received,
                 "Balance": edit_price - edit_received if edit_price else 0,
-                "Remarks": edit_remarks if edit_remarks else "-"
+                "Remarks": edit_remarks if edit_remarks else "-",
+                "Order Entry Date": edit["Order Entry Date"]
             }
 
+            df = reset_serial_numbers(df)
             df.to_csv(FILE_NAME, index=False)
+
             st.session_state.update_success = True
             del st.session_state.edit_row
             del st.session_state.edit_index
             st.rerun()
 
-    # DELETE
+    # =====================================================
+    # DELETE SECTION
+    # =====================================================
 
-    idx = st.selectbox(
-        "Delete Order",
-        df_display.index,
-        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
+    st.markdown("### 🗑 Delete Order")
+
+    delete_idx = st.selectbox(
+        "Select Order to Delete",
+        df_display["Sr No."],
+        format_func=lambda x: f"{df_display[df_display['Sr No.']==x]['Name'].values[0]} - "
+                              f"{df_display[df_display['Sr No.']==x]['Est Delivery'].values[0]}"
     )
 
     if st.button("Delete Selected Order"):
-        df2 = df.drop(idx).reset_index(drop=True)
-        df2.to_csv(FILE_NAME, index=False)
-        st.success("Deleted")
+
+        original_index = df[df["Sr No."] == delete_idx].index[0]
+        df = df.drop(original_index)
+        df = reset_serial_numbers(df)
+
+        df.to_csv(FILE_NAME, index=False)
+        st.success("Deleted Successfully")
         st.rerun()
 
-    # CSV
+    # =====================================================
+    # CSV DOWNLOAD
+    # =====================================================
 
     st.download_button(
         "📥 Download CSV",
@@ -385,18 +459,24 @@ if not df.empty:
         "dresskraft_orders.csv"
     )
 
-    # PDF
+    # =====================================================
+    # PDF DOWNLOAD
+    # =====================================================
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+
     data = [df_display.columns.tolist()] + df_display.values.tolist()
+
     table = Table(data)
+
     table.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.grey),
         ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
         ('GRID',(0,0),(-1,-1),0.25,colors.grey),
         ('FONTSIZE',(0,0),(-1,-1),6),
     ]))
+
     doc.build([table])
 
     st.download_button(
@@ -404,3 +484,6 @@ if not df.empty:
         buffer.getvalue(),
         "dresskraft_orders.pdf"
     )
+
+else:
+    st.info("No orders yet.")
