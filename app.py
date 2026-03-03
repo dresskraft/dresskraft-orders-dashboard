@@ -99,66 +99,53 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= LOGIN SYSTEM (STABLE 24 HOURS) =================
+
+# =====================================================
+# LOGIN SYSTEM
+# =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
-
-cookie_manager = stx.CookieManager(key="login_cookie_manager")
+cookie_manager = stx.CookieManager()
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# Wait for cookies to be ready
-cookies = cookie_manager.get_all()
+cookie = cookie_manager.get("dresskraft_login")
 
-if "dresskraft_login" in cookies:
-
+if cookie:
     try:
-        user, expiry_str = cookies["dresskraft_login"].split("|")
-        expiry = datetime.fromisoformat(expiry_str)
-
+        user, expiry = cookie.split("|")
+        expiry = datetime.fromisoformat(expiry)
         if datetime.now() < expiry:
             st.session_state.logged_in = True
             st.session_state.username = user
         else:
             cookie_manager.delete("dresskraft_login")
-
     except:
         cookie_manager.delete("dresskraft_login")
 
 if not st.session_state.logged_in:
-
-    st.title("Login")
-
+    st.title("🔐 Login")
     user = st.text_input("Username")
     pwd = st.text_input("Password", type="password")
 
     if st.button("Login"):
-
         if user.lower() in USERS and pwd == PASSWORD:
-
             expiry = datetime.now() + timedelta(hours=24)
-
             cookie_manager.set(
                 "dresskraft_login",
                 f"{user}|{expiry.isoformat()}",
                 expires_at=expiry
             )
-
             st.session_state.logged_in = True
             st.session_state.username = user
-
-            st.success("Login Successful")
             st.rerun()
-
         else:
             st.error("Invalid credentials")
-
     st.stop()
 
-st.sidebar.markdown(f"### Welcome {st.session_state.username}")
-
+st.sidebar.write(f"Welcome {st.session_state.username}")
 if st.sidebar.button("Logout"):
     cookie_manager.delete("dresskraft_login")
     st.session_state.logged_in = False
