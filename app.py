@@ -89,6 +89,12 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # =====================================================
+# PAGE NAVIGATION
+# =====================================================
+
+page = st.sidebar.radio("Navigation", ["Main Page", "All Orders Page"])
+
+# =====================================================
 # DATA
 # =====================================================
 
@@ -104,92 +110,94 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER
+# MAIN PAGE
 # =====================================================
 
-st.title("📦 DressKraft Orders Dashboard")
-st.subheader("➕ Add Order")
+if page == "Main Page":
 
-est_delivery = st.date_input("Est Delivery", key="add_est")
-name_customer = st.text_input("Customer Name", key="add_name")
+    st.title("📦 DressKraft Orders Dashboard")
+    st.subheader("➕ Add Order")
 
-addon = st.selectbox(
-    "Add-on",
-    ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"],
-    key="add_addon"
-)
+    est_delivery = st.date_input("Est Delivery", key="add_est")
+    name_customer = st.text_input("Customer Name", key="add_name")
 
-jacket_type = st.selectbox(
-    "Jacket Type",
-    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
-    key="add_jacket"
-)
+    addon = st.selectbox(
+        "Add-on",
+        ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"],
+        key="add_addon"
+    )
 
-sizes_value = "-"
-male = female = single = None
+    jacket_type = st.selectbox(
+        "Jacket Type",
+        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
+        key="add_jacket"
+    )
 
-if jacket_type == "Couple (M + F)":
-    col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
-    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
+    sizes_value = "-"
+    male = female = single = None
 
-elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, step=1, key="add_single")
+    if jacket_type == "Couple (M + F)":
+        col1, col2 = st.columns(2)
+        male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
+        female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
 
-elif jacket_type == "Custom / More than 2":
-    st.info("Size will be marked as 'Read Chat'")
+    elif jacket_type == "Single":
+        single = st.number_input("Size", 30, 60, step=1, key="add_single")
 
-count = st.number_input("Count", min_value=1, step=1, key="add_count")
-city = st.text_input("City", key="add_city")
-
-production_status = st.selectbox(
-    "Production Status",
-    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
-    key="add_status"
-)
-
-price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
-received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
-remarks = st.text_area("Remarks", key="add_remarks")
-
-if st.button("Add Order"):
-
-    if not name_customer:
-        st.error("Customer Name is required.")
-        st.stop()
-
-    if jacket_type == "Couple (M + F)" and male and female:
-        sizes_value = f"{male}M | {female}F"
-    elif jacket_type == "Single" and single:
-        sizes_value = str(single)
     elif jacket_type == "Custom / More than 2":
-        sizes_value = "Read Chat"
-    else:
-        sizes_value = "-"
+        st.info("Size will be marked as 'Read Chat'")
 
-    balance = price - received if price else 0
+    count = st.number_input("Count", min_value=1, step=1, key="add_count")
+    city = st.text_input("City", key="add_city")
 
-    new_row = {
-        "Est Delivery": est_delivery if est_delivery else "-",
-        "Name": name_customer,
-        "Add-on": addon if addon != "-- Select --" else "-",
-        "Sizes": sizes_value,
-        "Count": count if count else 1,
-        "City": city if city else "-",
-        "Production Status": production_status if production_status != "-- Select --" else "-",
-        "Price": price if price else 0,
-        "Received": received if received else 0,
-        "Balance": balance,
-        "Remarks": remarks if remarks else "-",
-        "Order Entry Date": datetime.today()
-    }
+    production_status = st.selectbox(
+        "Production Status",
+        ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
+        key="add_status"
+    )
 
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    df.to_csv(FILE_NAME, index=False)
-    st.success("Order Added Successfully!")
+    price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
+    received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
+    remarks = st.text_area("Remarks", key="add_remarks")
+
+    if st.button("Add Order"):
+
+        if not name_customer:
+            st.error("Customer Name is required.")
+            st.stop()
+
+        if jacket_type == "Couple (M + F)" and male and female:
+            sizes_value = f"{male}M | {female}F"
+        elif jacket_type == "Single" and single:
+            sizes_value = str(single)
+        elif jacket_type == "Custom / More than 2":
+            sizes_value = "Read Chat"
+        else:
+            sizes_value = "-"
+
+        balance = price - received if price else 0
+
+        new_row = {
+            "Est Delivery": est_delivery if est_delivery else "-",
+            "Name": name_customer,
+            "Add-on": addon if addon != "-- Select --" else "-",
+            "Sizes": sizes_value,
+            "Count": count if count else 1,
+            "City": city if city else "-",
+            "Production Status": production_status if production_status != "-- Select --" else "-",
+            "Price": price if price else 0,
+            "Received": received if received else 0,
+            "Balance": balance,
+            "Remarks": remarks if remarks else "-",
+            "Order Entry Date": datetime.today()
+        }
+
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+        df.to_csv(FILE_NAME, index=False)
+        st.success("Order Added Successfully!")
 
 # =====================================================
-# ALL ORDERS
+# ALL ORDERS SECTION (AUTO SORT ADDED)
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -197,6 +205,11 @@ st.subheader("📋 All Orders")
 if not df.empty:
 
     df_display = df.copy()
+
+    # AUTO SORT
+    df_display["Est Delivery Sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
+    df_display = df_display.sort_values("Est Delivery Sort")
+    df_display = df_display.drop(columns=["Est Delivery Sort"])
 
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
@@ -218,7 +231,9 @@ if not df.empty:
 
     st.dataframe(df_display, use_container_width=True)
 
-    # EDIT PANEL
+    # =======================
+    # FULL EDIT BLOCK RESTORED
+    # =======================
 
     st.markdown("### ✏️ Edit Order")
 
@@ -244,11 +259,14 @@ if not df.empty:
 
         edit = st.session_state.edit_row
 
-        edit_name = st.text_input("Customer Name",
-                                  value="" if edit["Name"] == "-" else edit["Name"],
-                                  key="edit_name")
+        edit_name = st.text_input(
+            "Customer Name",
+            value="" if edit["Name"] == "-" else edit["Name"],
+            key="edit_name"
+        )
 
         addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
+
         edit_addon = st.selectbox(
             "Add-on",
             addon_options,
@@ -304,11 +322,10 @@ if not df.empty:
             edit_sizes_value = "Read Chat"
 
         edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
-        edit_city = st.text_input("City",
-                                  value="" if edit["City"] == "-" else edit["City"],
-                                  key="edit_city")
+        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city")
 
         status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+
         edit_status = st.selectbox(
             "Production Status",
             status_options,
@@ -318,11 +335,10 @@ if not df.empty:
 
         edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price")
         edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
-        edit_remarks = st.text_area("Remarks",
-                                    value="" if edit["Remarks"] == "-" else edit["Remarks"],
-                                    key="edit_remarks")
+        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks")
 
         if st.button("Update Order"):
+
             df.loc[st.session_state.edit_index] = {
                 **edit,
                 "Name": edit_name,
