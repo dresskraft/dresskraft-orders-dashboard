@@ -43,7 +43,6 @@ def payment_status_logic(price, received):
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
-
 cookie_manager = stx.CookieManager()
 
 if "logged_in" not in st.session_state:
@@ -105,7 +104,7 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER (DYNAMIC FIXED)
+# ADD ORDER
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
@@ -190,7 +189,7 @@ if st.button("Add Order"):
     st.success("Order Added Successfully!")
 
 # =====================================================
-# ALL ORDERS (UNCHANGED)
+# ALL ORDERS
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -219,7 +218,7 @@ if not df.empty:
 
     st.dataframe(df_display, use_container_width=True)
 
-    # EDIT PANEL (UNCHANGED)
+    # EDIT PANEL
 
     st.markdown("### ✏️ Edit Order")
 
@@ -246,13 +245,15 @@ if not df.empty:
         edit = st.session_state.edit_row
 
         edit_name = st.text_input("Customer Name",
-                                  value="" if edit["Name"] == "-" else edit["Name"])
+                                  value="" if edit["Name"] == "-" else edit["Name"],
+                                  key="edit_name")
 
         addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
         edit_addon = st.selectbox(
             "Add-on",
             addon_options,
-            index=0 if edit["Add-on"] == "-" else addon_options.index(edit["Add-on"])
+            index=0 if edit["Add-on"] == "-" else addon_options.index(edit["Add-on"]),
+            key="edit_addon"
         )
 
         size_val = str(edit["Sizes"])
@@ -271,7 +272,8 @@ if not df.empty:
         edit_jacket_type = st.selectbox(
             "Jacket Type",
             jacket_options,
-            index=jacket_options.index(detected_type)
+            index=jacket_options.index(detected_type),
+            key="edit_jacket"
         )
 
         edit_sizes_value = "-"
@@ -285,8 +287,8 @@ if not df.empty:
                 m, f = 40, 36
 
             col1, col2 = st.columns(2)
-            m_edit = col1.number_input("Male Size", 30, 60, value=m)
-            f_edit = col2.number_input("Female Size", 30, 60, value=f)
+            m_edit = col1.number_input("Male Size", 30, 60, value=m, key="edit_male")
+            f_edit = col2.number_input("Female Size", 30, 60, value=f, key="edit_female")
             edit_sizes_value = f"{m_edit}M | {f_edit}F"
 
         elif edit_jacket_type == "Single":
@@ -294,28 +296,31 @@ if not df.empty:
                 s = int(size_val)
             except:
                 s = 40
-            s_edit = st.number_input("Size", 30, 60, value=s)
+            s_edit = st.number_input("Size", 30, 60, value=s, key="edit_single")
             edit_sizes_value = str(s_edit)
 
         elif edit_jacket_type == "Custom / More than 2":
             st.info("Size will be marked as 'Read Chat'")
             edit_sizes_value = "Read Chat"
 
-        edit_count = st.number_input("Count", value=int(edit["Count"]))
+        edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
         edit_city = st.text_input("City",
-                                  value="" if edit["City"] == "-" else edit["City"])
+                                  value="" if edit["City"] == "-" else edit["City"],
+                                  key="edit_city")
 
         status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
         edit_status = st.selectbox(
             "Production Status",
             status_options,
-            index=0 if edit["Production Status"] == "-" else status_options.index(edit["Production Status"])
+            index=0 if edit["Production Status"] == "-" else status_options.index(edit["Production Status"]),
+            key="edit_status"
         )
 
-        edit_price = st.number_input("Price", value=float(edit["Price"]))
-        edit_received = st.number_input("Received", value=float(edit["Received"]))
+        edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price")
+        edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
         edit_remarks = st.text_area("Remarks",
-                                    value="" if edit["Remarks"] == "-" else edit["Remarks"])
+                                    value="" if edit["Remarks"] == "-" else edit["Remarks"],
+                                    key="edit_remarks")
 
         if st.button("Update Order"):
             df.loc[st.session_state.edit_index] = {
@@ -339,6 +344,7 @@ if not df.empty:
             st.rerun()
 
     # DELETE
+
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
@@ -352,6 +358,7 @@ if not df.empty:
         st.rerun()
 
     # CSV
+
     st.download_button(
         "📥 Download CSV",
         df_display.to_csv(index=False).encode(),
@@ -359,6 +366,7 @@ if not df.empty:
     )
 
     # PDF
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
