@@ -424,14 +424,20 @@ if not df.empty:
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    col_del, col_del_msg = st.columns([1,2])
+    # ===== FULL WIDTH DELETE BUTTON =====
 
-    with col_del:
-        if st.button("🗑 Delete Selected Order"):
-            df2 = df.drop(idx).reset_index(drop=True)
-            df2.to_csv(FILE_NAME, index=False)
-            st.session_state.delete_success = True
-            st.rerun()
+if st.button("🗑 Delete Selected Order"):
+
+    df2 = df.drop(idx).reset_index(drop=True)
+    df2.to_csv(FILE_NAME, index=False)
+
+    st.session_state.delete_success = True
+    st.rerun()
+
+# ===== RIGHT SIDE SUCCESS MESSAGE =====
+if st.session_state.get("delete_success"):
+    st.success("Deleted Successfully")
+    st.session_state.delete_success = False
 
     # ================= CSV DOWNLOAD =================
 
