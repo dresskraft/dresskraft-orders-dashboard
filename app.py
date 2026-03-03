@@ -9,106 +9,45 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= PREMIUM DARK THEME =================
+# ================= DARK THEME =================
 
 st.markdown("""
 <style>
-
-/* GLOBAL */
 html, body, [class*="css"] {
     background-color: #0f1117;
     color: #ffffff;
 }
-
 .block-container {
     padding-top: 1.5rem;
-    padding-bottom: 2rem;
 }
-
-/* HEADINGS */
-h1, h2, h3, h4 {
-    color: #ffffff !important;
-}
-
-/* PREMIUM DARK INDIGO BUTTONS */
 .stButton>button {
-    background: linear-gradient(135deg, #3b3f5c, #2c2f4a);
+    background: linear-gradient(135deg, #2c2f4a, #1e2238);
     color: #ffffff;
     border-radius: 10px;
-    border: 1px solid #4c4f73;
+    border: 1px solid #3a3f5c;
     height: 3em;
     width: 100%;
     font-weight: 600;
-    transition: all 0.3s ease;
 }
-
 .stButton>button:hover {
-    background: linear-gradient(135deg, #4c4f73, #3b3f5c);
-    transform: scale(1.02);
+    background: linear-gradient(135deg, #3a3f5c, #2c2f4a);
 }
-
-/* INPUTS */
 input, textarea {
     background-color: #1c1f26 !important;
     color: white !important;
-    border-radius: 6px !important;
-    border: 1px solid #2e3440 !important;
 }
-
-/* SELECTBOX */
 div[data-baseweb="select"] > div {
     background-color: #1c1f26 !important;
     color: white !important;
-    border-radius: 6px !important;
-    border: 1px solid #2e3440 !important;
 }
-
-ul[role="listbox"] {
-    background-color: #1c1f26 !important;
-}
-
-li[role="option"]:hover {
-    background-color: #2a2f3a !important;
-}
-
-/* TABLE */
-thead tr th {
-    background-color: #1f2937 !important;
-    color: white !important;
-    font-weight: 600 !important;
-}
-
-tbody tr {
-    background-color: #111827 !important;
-}
-
-tbody tr:hover {
-    background-color: #1f2937 !important;
-}
-
-/* SUCCESS */
-.stSuccess {
-    background-color: #1b5e20 !important;
-    color: #ffffff !important;
-    border-radius: 6px !important;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
-# ================= LOGO =================
+# ================= HEADER =================
 
 st.markdown("""
-<div style="text-align:center;margin-top:15px;margin-bottom:10px;">
-<h1 style="
-font-size:44px;
-font-weight:700;
-background: linear-gradient(90deg, #b8c0ff, #ffffff);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-">
-DressKraft
-</h1>
+<div style="text-align:center;margin-bottom:15px;">
+<h1 style="font-size:42px;">DressKraft</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -144,7 +83,7 @@ if os.path.exists(FILE_NAME):
     df = pd.read_csv(FILE_NAME)
 else:
     df = pd.DataFrame(columns=[
-        "Est Delivery","Name","Add-on","Sizes","Count","City",
+        "Est Delivery","Name","Look","Add-on","Sizes","Count","City",
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
@@ -156,6 +95,13 @@ st.subheader("➕ Add Order")
 
 est_delivery = st.date_input("Est Delivery", key="add_est")
 name_customer = st.text_input("Customer Name", key="add_name")
+
+# ===== LOOK DROPDOWN (NEW) =====
+look = st.selectbox(
+    "Look",
+    ["-- Select --","LED","Non-LED","Patch","Multiple"],
+    key="add_look"
+)
 
 addon = st.selectbox(
     "Add-on",
@@ -197,7 +143,6 @@ price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
 received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
 remarks = st.text_area("Remarks", key="add_remarks")
 
-# ===== ADD BUTTON =====
 if st.button("Add Order"):
 
     if not name_customer:
@@ -218,6 +163,7 @@ if st.button("Add Order"):
     new_row = {
         "Est Delivery": est_delivery if est_delivery else "-",
         "Name": name_customer,
+        "Look": look if look != "-- Select --" else "-",
         "Add-on": addon if addon != "-- Select --" else "-",
         "Sizes": sizes_value,
         "Count": count if count else 1,
@@ -243,7 +189,7 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # ===== PRODUCTION STATUS FILTER =====
+    # ===== FILTER =====
     status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
     status_options = sorted(list(set(status_options)))
 
@@ -319,6 +265,16 @@ if not df.empty:
             "Customer Name",
             value="" if edit["Name"] == "-" else edit["Name"],
             key="edit_name"
+        )
+
+        # ===== LOOK EDIT =====
+        look_options = ["-- Select --","LED","Non-LED","Patch","Multiple"]
+
+        edit_look = st.selectbox(
+            "Look",
+            look_options,
+            index=look_options.index(edit["Look"]) if edit["Look"] in look_options else 0,
+            key="edit_look"
         )
 
         addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
@@ -401,6 +357,7 @@ if not df.empty:
                 df.loc[st.session_state.edit_index] = {
                     **edit,
                     "Name": edit_name,
+                    "Look": edit_look if edit_look != "-- Select --" else "-",
                     "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
                     "Sizes": edit_sizes_value,
                     "Count": edit_count,
@@ -419,7 +376,7 @@ if not df.empty:
                 st.rerun()
 
     # =====================================================
-    # DELETE SECTION (FULL WIDTH)
+    # DELETE SECTION
     # =====================================================
 
     st.markdown("### 🗑 Delete Order")
@@ -431,10 +388,8 @@ if not df.empty:
     )
 
     if st.button("🗑 Delete Selected Order"):
-
         df2 = df.drop(idx).reset_index(drop=True)
         df2.to_csv(FILE_NAME, index=False)
-
         st.session_state.delete_success = True
         st.rerun()
 
