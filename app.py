@@ -89,12 +89,6 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # =====================================================
-# PAGE NAVIGATION
-# =====================================================
-
-page = st.sidebar.radio("Navigation", ["Main Page", "All Orders Page"])
-
-# =====================================================
 # DATA
 # =====================================================
 
@@ -110,18 +104,99 @@ else:
     ])
 
 # =====================================================
-# ALL ORDERS FUNCTION (ONLY FILTER ADDED HERE)
+# ADD ORDER SECTION
 # =====================================================
 
-def render_all_orders():
+st.title("📦 DressKraft Orders Dashboard")
+st.subheader("➕ Add Order")
 
-    st.subheader("📋 All Orders")
+est_delivery = st.date_input("Est Delivery", key="add_est")
+name_customer = st.text_input("Customer Name", key="add_name")
 
-    if df.empty:
-        st.info("No orders yet.")
-        return
+addon = st.selectbox(
+    "Add-on",
+    ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"],
+    key="add_addon"
+)
 
-    # 🔹 FILTER ADDED
+jacket_type = st.selectbox(
+    "Jacket Type",
+    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
+    key="add_jacket"
+)
+
+sizes_value = "-"
+male = female = single = None
+
+if jacket_type == "Couple (M + F)":
+    col1, col2 = st.columns(2)
+    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
+    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
+
+elif jacket_type == "Single":
+    single = st.number_input("Size", 30, 60, step=1, key="add_single")
+
+elif jacket_type == "Custom / More than 2":
+    st.info("Size will be marked as 'Read Chat'")
+
+count = st.number_input("Count", min_value=1, step=1, key="add_count")
+city = st.text_input("City", key="add_city")
+
+production_status = st.selectbox(
+    "Production Status",
+    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
+    key="add_status"
+)
+
+price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
+received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
+remarks = st.text_area("Remarks", key="add_remarks")
+
+if st.button("Add Order"):
+
+    if not name_customer:
+        st.error("Customer Name is required.")
+        st.stop()
+
+    if jacket_type == "Couple (M + F)" and male and female:
+        sizes_value = f"{male}M | {female}F"
+    elif jacket_type == "Single" and single:
+        sizes_value = str(single)
+    elif jacket_type == "Custom / More than 2":
+        sizes_value = "Read Chat"
+    else:
+        sizes_value = "-"
+
+    balance = price - received if price else 0
+
+    new_row = {
+        "Est Delivery": est_delivery if est_delivery else "-",
+        "Name": name_customer,
+        "Add-on": addon if addon != "-- Select --" else "-",
+        "Sizes": sizes_value,
+        "Count": count if count else 1,
+        "City": city if city else "-",
+        "Production Status": production_status if production_status != "-- Select --" else "-",
+        "Price": price if price else 0,
+        "Received": received if received else 0,
+        "Balance": balance,
+        "Remarks": remarks if remarks else "-",
+        "Order Entry Date": datetime.today()
+    }
+
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    df.to_csv(FILE_NAME, index=False)
+    st.success("Order Added Successfully!")
+
+# =====================================================
+# ALL ORDERS SECTION
+# =====================================================
+
+st.subheader("📋 All Orders")
+
+if not df.empty:
+
+    # FILTER ADDED
     status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
     status_options = sorted(list(set(status_options)))
 
@@ -137,7 +212,7 @@ def render_all_orders():
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # AUTO SORT BY EST DELIVERY
+    # AUTO SORT
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
     df_display = df_display.sort_values("__sort")
     df_display = df_display.drop(columns=["__sort"])
@@ -163,6 +238,7 @@ def render_all_orders():
     st.dataframe(df_display, use_container_width=True)
 
     # ================= EDIT =================
+
     st.markdown("### ✏️ Edit Order")
 
     edit_idx = st.selectbox(
@@ -287,6 +363,8 @@ def render_all_orders():
             del st.session_state.edit_index
             st.rerun()
 
+    # DELETE
+
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
@@ -299,11 +377,15 @@ def render_all_orders():
         st.success("Deleted")
         st.rerun()
 
+    # CSV
+
     st.download_button(
         "📥 Download CSV",
         df_display.to_csv(index=False).encode(),
         "dresskraft_orders.csv"
     )
+
+    # PDF
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
@@ -322,100 +404,3 @@ def render_all_orders():
         buffer.getvalue(),
         "dresskraft_orders.pdf"
     )
-
-# =====================================================
-# MAIN PAGE
-# =====================================================
-
-if page == "Main Page":
-
-    st.title("📦 DressKraft Orders Dashboard")
-    st.subheader("➕ Add Order")
-
-    est_delivery = st.date_input("Est Delivery", key="add_est")
-    name_customer = st.text_input("Customer Name", key="add_name")
-
-    addon = st.selectbox(
-        "Add-on",
-        ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"],
-        key="add_addon"
-    )
-
-    jacket_type = st.selectbox(
-        "Jacket Type",
-        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
-        key="add_jacket"
-    )
-
-    sizes_value = "-"
-    male = female = single = None
-
-    if jacket_type == "Couple (M + F)":
-        col1, col2 = st.columns(2)
-        male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
-        female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
-
-    elif jacket_type == "Single":
-        single = st.number_input("Size", 30, 60, step=1, key="add_single")
-
-    elif jacket_type == "Custom / More than 2":
-        st.info("Size will be marked as 'Read Chat'")
-
-    count = st.number_input("Count", min_value=1, step=1, key="add_count")
-    city = st.text_input("City", key="add_city")
-
-    production_status = st.selectbox(
-        "Production Status",
-        ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
-        key="add_status"
-    )
-
-    price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
-    received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
-    remarks = st.text_area("Remarks", key="add_remarks")
-
-    if st.button("Add Order"):
-
-        if not name_customer:
-            st.error("Customer Name is required.")
-            st.stop()
-
-        if jacket_type == "Couple (M + F)" and male and female:
-            sizes_value = f"{male}M | {female}F"
-        elif jacket_type == "Single" and single:
-            sizes_value = str(single)
-        elif jacket_type == "Custom / More than 2":
-            sizes_value = "Read Chat"
-        else:
-            sizes_value = "-"
-
-        balance = price - received if price else 0
-
-        new_row = {
-            "Est Delivery": est_delivery if est_delivery else "-",
-            "Name": name_customer,
-            "Add-on": addon if addon != "-- Select --" else "-",
-            "Sizes": sizes_value,
-            "Count": count if count else 1,
-            "City": city if city else "-",
-            "Production Status": production_status if production_status != "-- Select --" else "-",
-            "Price": price if price else 0,
-            "Received": received if received else 0,
-            "Balance": balance,
-            "Remarks": remarks if remarks else "-",
-            "Order Entry Date": datetime.today()
-        }
-
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        df.to_csv(FILE_NAME, index=False)
-        st.success("Order Added Successfully!")
-
-    render_all_orders()
-
-# =====================================================
-# ALL ORDERS PAGE ONLY
-# =====================================================
-
-if page == "All Orders Page":
-    st.title("📋 All Orders Page")
-    render_all_orders()
