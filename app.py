@@ -180,7 +180,13 @@ if st.button("Add Order"):
     df.to_csv(FILE_NAME, index=False)
 
     st.success("Order Added Successfully!")
-    st.rerun()
+
+# ===== CLEAR FORM FIELDS =====
+for key in list(st.session_state.keys()):
+    if key.startswith("add_"):
+        del st.session_state[key]
+
+st.rerun()
     # =====================================================
 # ALL ORDERS SECTION
 # =====================================================
