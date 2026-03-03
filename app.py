@@ -106,7 +106,7 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER (DYNAMIC SIZE FILTER)
+# ADD ORDER
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
@@ -157,42 +157,33 @@ with st.form("order_form", clear_on_submit=True):
 
 if submitted:
 
-    if (
-        not name_customer or
-        addon == "-- Select --" or
-        jacket_type == "-- Select --" or
-        production_status == "-- Select --"
-    ):
-        st.error("Please fill mandatory fields.")
+    # ONLY NAME MANDATORY
+    if not name_customer:
+        st.error("Customer Name is required.")
         st.stop()
 
-    if jacket_type == "Couple (M + F)":
-        if male is None or female is None:
-            st.error("Enter both sizes.")
-            st.stop()
+    # SIZE LOGIC
+    if jacket_type == "Couple (M + F)" and male and female:
         sizes_value = f"{male}M | {female}F"
-
-    elif jacket_type == "Single":
-        if single is None:
-            st.error("Enter size.")
-            st.stop()
+    elif jacket_type == "Single" and single:
         sizes_value = str(single)
-
     elif jacket_type == "Custom / More than 2":
         sizes_value = "Read Chat"
+    else:
+        sizes_value = "-"
 
-    balance = price - received
+    balance = price - received if price else 0
 
     new_row = {
-        "Est Delivery": est_delivery,
+        "Est Delivery": est_delivery if est_delivery else "-",
         "Name": name_customer,
-        "Add-on": addon,
+        "Add-on": addon if addon != "-- Select --" else "-",
         "Sizes": sizes_value,
-        "Count": count,
+        "Count": count if count else 1,
         "City": city if city else "-",
-        "Production Status": production_status,
-        "Price": price,
-        "Received": received,
+        "Production Status": production_status if production_status != "-- Select --" else "-",
+        "Price": price if price else 0,
+        "Received": received if received else 0,
         "Balance": balance,
         "Remarks": remarks if remarks else "-",
         "Order Entry Date": datetime.today()
@@ -217,7 +208,7 @@ if not df.empty:
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    # SAFE DATE CONVERSION (NO ERROR)
+    # SAFE DATE CONVERSION
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
     ).dt.strftime("%d-%m-%Y")
@@ -234,6 +225,7 @@ if not df.empty:
 
     st.dataframe(df_display, use_container_width=True)
 
+    # DELETE OPTION
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
@@ -246,12 +238,14 @@ if not df.empty:
         st.success("Deleted")
         st.rerun()
 
+    # DOWNLOAD CSV
     st.download_button(
         "📥 Download CSV",
         df_display.to_csv(index=False).encode(),
         "dresskraft_orders.csv"
     )
 
+    # DOWNLOAD PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
