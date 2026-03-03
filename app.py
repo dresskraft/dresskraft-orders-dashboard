@@ -14,14 +14,13 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 st.markdown("""
 <style>
-
 html, body, [class*="css"] {
     background-color: #0e1117;
     color: #ffffff;
 }
 
 .logo-container {
-    margin-top: 45px;
+    margin-top: 55px;
     margin-bottom: 25px;
     text-align: center;
 }
@@ -33,15 +32,8 @@ html, body, [class*="css"] {
     letter-spacing: 1px;
 }
 
-.logo-bow {
-    font-size: 28px;
-    margin-right: 6px;
-}
-
-.logo-sparkle {
-    font-size: 22px;
-    margin-left: 6px;
-}
+.logo-bow { font-size: 28px; margin-right: 6px; }
+.logo-sparkle { font-size: 22px; margin-left: 6px; }
 
 div[data-baseweb="select"] > div {
     background-color: #1f2937 !important;
@@ -62,7 +54,6 @@ input, textarea {
 .stButton>button:hover {
     background-color: #db2777;
 }
-
 </style>
 
 <div class="logo-container">
@@ -96,26 +87,22 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= 24 HOUR PERSISTENT LOGIN =================
+# ================= 24 HOUR LOGIN (PERSISTENT) =================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
 
 cookie_manager = stx.CookieManager()
 
-if not cookie_manager.ready():
-    st.stop()
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 cookie = cookie_manager.get("dresskraft_login")
 
-if cookie:
+if cookie and not st.session_state.logged_in:
     try:
         user, expiry_str = cookie.split("|")
         expiry = datetime.fromisoformat(expiry_str)
-
         if datetime.now() < expiry:
             st.session_state.logged_in = True
             st.session_state.username = user
@@ -132,22 +119,16 @@ if not st.session_state.logged_in:
     pwd = st.text_input("Password", type="password")
 
     if st.button("Login"):
-
         if user.lower() in USERS and pwd == PASSWORD:
-
             expiry = datetime.now() + timedelta(hours=24)
-
             cookie_manager.set(
                 "dresskraft_login",
                 f"{user}|{expiry.isoformat()}",
                 expires_at=expiry
             )
-
             st.session_state.logged_in = True
             st.session_state.username = user
-
             st.rerun()
-
         else:
             st.error("Invalid credentials")
 
@@ -172,42 +153,42 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-    # ================= ADD ORDER SECTION =================
+    # ================= ADD ORDER =================
 
 st.markdown("## ➕ Add Order")
 
-est_delivery = st.date_input("Est Delivery", key="add_est")
-name_customer = st.text_input("Customer Name", key="add_name")
+est_delivery = st.date_input("Est Delivery")
+name_customer = st.text_input("Customer Name")
 
 addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
-addon = st.selectbox("Add-on", addon_options, key="add_addon")
+addon = st.selectbox("Add-on", addon_options)
 
 jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-jacket_type = st.selectbox("Jacket Type", jacket_options, key="add_jacket")
+jacket_type = st.selectbox("Jacket Type", jacket_options)
 
 sizes_value = "-"
 male = female = single = None
 
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, key="add_male")
-    female = col2.number_input("Female Size", 30, 60, key="add_female")
+    male = col1.number_input("Male Size", 30, 60)
+    female = col2.number_input("Female Size", 30, 60)
 
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, key="add_single")
+    single = st.number_input("Size", 30, 60)
 
 elif jacket_type == "Custom / More than 2":
     st.info("Size will be marked as 'Read Chat'")
 
-count = st.number_input("Count", min_value=1, key="add_count")
-city = st.text_input("City", key="add_city")
+count = st.number_input("Count", min_value=1)
+city = st.text_input("City")
 
 status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
-production_status = st.selectbox("Production Status", status_options, key="add_status")
+production_status = st.selectbox("Production Status", status_options)
 
-price = st.number_input("Price", min_value=0.0, key="add_price")
-received = st.number_input("Received", min_value=0.0, key="add_received")
-remarks = st.text_area("Remarks", key="add_remarks")
+price = st.number_input("Price", min_value=0.0)
+received = st.number_input("Received", min_value=0.0)
+remarks = st.text_area("Remarks")
 
 if st.button("Add Order"):
 
@@ -243,7 +224,7 @@ if st.button("Add Order"):
     df.to_csv(FILE_NAME, index=False)
     st.success("Order Added Successfully!")
 
-# ================= ALL ORDERS SECTION =================
+# ================= ALL ORDERS =================
 
 st.markdown("## 📋 All Orders")
 
@@ -310,8 +291,10 @@ if not df.empty:
 
         edit = st.session_state.edit_row
 
-        edit_name = st.text_input("Customer Name",
-                                  value="" if edit["Name"] == "-" else edit["Name"])
+        edit_name = st.text_input(
+            "Customer Name",
+            value="" if edit["Name"] == "-" else edit["Name"]
+        )
 
         edit_addon = st.selectbox(
             "Add-on",
@@ -364,8 +347,10 @@ if not df.empty:
             edit_sizes_value = "Read Chat"
 
         edit_count = st.number_input("Count", value=int(edit["Count"]))
-        edit_city = st.text_input("City",
-                                  value="" if edit["City"] == "-" else edit["City"])
+        edit_city = st.text_input(
+            "City",
+            value="" if edit["City"] == "-" else edit["City"]
+        )
 
         edit_status = st.selectbox(
             "Production Status",
@@ -375,8 +360,10 @@ if not df.empty:
 
         edit_price = st.number_input("Price", value=float(edit["Price"]))
         edit_received = st.number_input("Received", value=float(edit["Received"]))
-        edit_remarks = st.text_area("Remarks",
-                                    value="" if edit["Remarks"] == "-" else edit["Remarks"])
+        edit_remarks = st.text_area(
+            "Remarks",
+            value="" if edit["Remarks"] == "-" else edit["Remarks"]
+        )
 
         col_up_btn, col_up_msg = st.columns([1,2])
 
