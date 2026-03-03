@@ -9,26 +9,66 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK UI =================
+# ================= DARK THEME RESTORE =================
 
 st.markdown("""
 <style>
-.block-container {padding-top: 1.5rem;}
+
+/* Global background */
+html, body, [class*="css"] {
+    background-color: #0f1117;
+    color: #ffffff;
+}
+
+/* Reduce top padding */
+.block-container {
+    padding-top: 1rem;
+}
+
+/* Center logo container */
+.logo-container {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+/* Buttons */
 .stButton>button {
     background-color: #1f77b4;
     color: white;
-    border-radius: 6px;
+    border-radius: 8px;
     height: 3em;
+    border: none;
 }
 .stButton>button:hover {
     background-color: #155a8a;
 }
+
+/* Select boxes darker dropdown */
 div[data-baseweb="select"] > div {
     background-color: #1e1e1e !important;
     color: white !important;
+    border-radius: 6px;
 }
+
+/* Inputs */
+input, textarea {
+    background-color: #1e1e1e !important;
+    color: white !important;
+}
+
+/* Remove weird outlines */
+.css-1cpxqw2 {
+    border: none !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
+
+# ================= LOGO RESTORE =================
+
+st.markdown('<div class="logo-container">', unsafe_allow_html=True)
+st.image("logo.png", width=180)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= HELPERS =================
 
@@ -180,7 +220,7 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ===== Payment Status =====
+    # ===== Payment Status Column =====
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
