@@ -63,19 +63,33 @@ input, textarea {
 </div>
 """, unsafe_allow_html=True)
 
-# ================= FINAL 24H LOGIN (QUERY PARAM METHOD) =================
+# ================= FINAL HOME SCREEN STABLE LOGIN =================
+
+import streamlit.components.v1 as components
 
 PASSWORD = "Diksha@1999"
 
-# Read token from URL
-query_params = st.query_params
+# Read login from browser localStorage
+login_value = components.html(
+    """
+    <script>
+    const expiry = localStorage.getItem("dresskraft_login_expiry");
+    if (expiry) {
+        document.write(expiry);
+    } else {
+        document.write("NONE");
+    }
+    </script>
+    """,
+    height=0,
+)
 
 authenticated = False
 
-if "auth" in query_params and "expiry" in query_params:
+if login_value != "NONE":
     try:
-        expiry = datetime.fromisoformat(query_params["expiry"])
-        if datetime.now() < expiry:
+        expiry_time = datetime.fromisoformat(login_value.strip())
+        if datetime.now() < expiry_time:
             authenticated = True
     except:
         authenticated = False
@@ -86,12 +100,16 @@ if not authenticated:
 
     if st.button("Login"):
         if pwd == PASSWORD:
-            expiry_time = (datetime.now() + timedelta(hours=24)).isoformat()
-            st.query_params.update({
-                "auth": "true",
-                "expiry": expiry_time
-            })
-            st.rerun()
+            expiry = (datetime.now() + timedelta(hours=24)).isoformat()
+            components.html(
+                f"""
+                <script>
+                localStorage.setItem("dresskraft_login_expiry", "{expiry}");
+                window.location.reload();
+                </script>
+                """,
+                height=0,
+            )
         else:
             st.error("Incorrect Password")
 
@@ -99,9 +117,16 @@ if not authenticated:
 
 # Logout
 if st.sidebar.button("Logout"):
-    st.query_params.clear()
-    st.rerun()
-
+    components.html(
+        """
+        <script>
+        localStorage.removeItem("dresskraft_login_expiry");
+        window.location.reload();
+        </script>
+        """,
+        height=0,
+    )
+    
 # ================= HELPERS =================
 
 def format_indian(number):
