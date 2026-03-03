@@ -194,6 +194,11 @@ if submitted:
 
 st.subheader("📋 All Orders")
 
+# 🔹 ACKNOWLEDGEMENT (NEW ADDITION ONLY)
+if "update_success" in st.session_state and st.session_state.update_success:
+    st.success("✅ Order Updated Successfully!")
+    st.session_state.update_success = False
+
 if not df.empty:
 
     df_display = df.copy()
@@ -219,7 +224,7 @@ if not df.empty:
     st.dataframe(df_display, use_container_width=True)
 
     # =========================
-    # EDIT PANEL (FULL DYNAMIC)
+    # EDIT PANEL (UNCHANGED LOGIC)
     # =========================
 
     st.markdown("### ✏️ Edit Order")
@@ -250,7 +255,6 @@ if not df.empty:
             index=0 if edit["Add-on"] == "-" else addon_options.index(edit["Add-on"])
         )
 
-        # Detect Jacket Type
         size_val = str(edit["Sizes"])
 
         if "M |" in size_val:
@@ -329,9 +333,12 @@ if not df.empty:
             }
 
             df.to_csv(FILE_NAME, index=False)
+
+            st.session_state.update_success = True
+
             del st.session_state.edit_row
             del st.session_state.edit_index
-            st.success("Order Updated Successfully!")
+
             st.rerun()
 
     # =========================
@@ -350,14 +357,12 @@ if not df.empty:
         st.success("Deleted")
         st.rerun()
 
-    # DOWNLOAD CSV
     st.download_button(
         "📥 Download CSV",
         df_display.to_csv(index=False).encode(),
         "dresskraft_orders.csv"
     )
 
-    # DOWNLOAD PDF
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
