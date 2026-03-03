@@ -96,7 +96,7 @@ st.subheader("➕ Add Order")
 est_delivery = st.date_input("Est Delivery", key="add_est")
 name_customer = st.text_input("Customer Name", key="add_name")
 
-# ===== LOOK DROPDOWN (NEW) =====
+# ===== LOOK (AFTER NAME) =====
 look = st.selectbox(
     "Look",
     ["-- Select --","LED","Non-LED","Patch","Multiple"],
@@ -231,6 +231,16 @@ if not df.empty:
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
+    # ===== REORDER COLUMNS (Move Look after Name) =====
+    columns = df_display.columns.tolist()
+
+    if "Look" in columns:
+        columns.remove("Look")
+        name_index = columns.index("Name")
+        columns.insert(name_index + 1, "Look")
+
+    df_display = df_display[columns]
+
     st.dataframe(df_display, use_container_width=True)
 
     # =====================================================
@@ -286,53 +296,6 @@ if not df.empty:
             key="edit_addon"
         )
 
-        size_val = str(edit["Sizes"])
-
-        if "M |" in size_val:
-            detected_type = "Couple (M + F)"
-        elif size_val == "Read Chat":
-            detected_type = "Custom / More than 2"
-        elif size_val == "-" or size_val == "":
-            detected_type = "-- Select --"
-        else:
-            detected_type = "Single"
-
-        jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-
-        edit_jacket_type = st.selectbox(
-            "Jacket Type",
-            jacket_options,
-            index=jacket_options.index(detected_type),
-            key="edit_jacket"
-        )
-
-        edit_sizes_value = "-"
-
-        if edit_jacket_type == "Couple (M + F)":
-            try:
-                m, f = size_val.replace("M","").replace("F","").split("|")
-                m = int(m.strip())
-                f = int(f.strip())
-            except:
-                m, f = 40, 36
-
-            col1, col2 = st.columns(2)
-            m_edit = col1.number_input("Male Size", 30, 60, value=m, key="edit_male")
-            f_edit = col2.number_input("Female Size", 30, 60, value=f, key="edit_female")
-            edit_sizes_value = f"{m_edit}M | {f_edit}F"
-
-        elif edit_jacket_type == "Single":
-            try:
-                s = int(size_val)
-            except:
-                s = 40
-            s_edit = st.number_input("Size", 30, 60, value=s, key="edit_single")
-            edit_sizes_value = str(s_edit)
-
-        elif edit_jacket_type == "Custom / More than 2":
-            st.info("Size will be marked as 'Read Chat'")
-            edit_sizes_value = "Read Chat"
-
         edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
         edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city")
 
@@ -359,7 +322,6 @@ if not df.empty:
                     "Name": edit_name,
                     "Look": edit_look if edit_look != "-- Select --" else "-",
                     "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
-                    "Sizes": edit_sizes_value,
                     "Count": edit_count,
                     "City": edit_city if edit_city else "-",
                     "Production Status": edit_status if edit_status != "-- Select --" else "-",
