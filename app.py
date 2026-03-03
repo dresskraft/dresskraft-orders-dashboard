@@ -30,21 +30,21 @@ h1, h2, h3, h4 {
     color: #ffffff !important;
 }
 
-/* 🎀 BUBBLEGUM PINK BUTTONS */
+/* PREMIUM DARK INDIGO BUTTONS */
 .stButton>button {
-    background: linear-gradient(135deg, #ff69b4, #ff3fa4);
-    color: white;
+    background: linear-gradient(135deg, #3b3f5c, #2c2f4a);
+    color: #ffffff;
     border-radius: 10px;
-    border: none;
+    border: 1px solid #4c4f73;
     height: 3em;
     width: 100%;
     font-weight: 600;
-    transition: 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .stButton>button:hover {
-    background: linear-gradient(135deg, #ff3fa4, #ff1493);
-    transform: scale(1.03);
+    background: linear-gradient(135deg, #4c4f73, #3b3f5c);
+    transform: scale(1.02);
 }
 
 /* INPUTS */
