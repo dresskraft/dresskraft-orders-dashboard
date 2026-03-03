@@ -9,46 +9,59 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK THEME =================
+# =====================================================
+# DARK THEME STYLING
+# =====================================================
+
 st.markdown("""
 <style>
-html, body, [class*="css"] {
+
+.stApp {
     background-color: #0f1117;
     color: #ffffff;
 }
-.block-container {
-    padding-top: 1.5rem;
-}
-.stButton>button {
-    background: linear-gradient(135deg, #2c2f4a, #1e2238);
+
+h1, h2, h3, h4 {
     color: #ffffff;
-    border-radius: 10px;
-    border: 1px solid #3a3f5c;
-    height: 3em;
-    width: 100%;
+}
+
+div[data-baseweb="select"] > div {
+    background-color: #1c1f26;
+    color: white;
+}
+
+div[data-baseweb="select"] span {
+    color: white !important;
+}
+
+.stTextInput>div>div>input,
+.stNumberInput>div>div>input,
+.stDateInput>div>div>input,
+textarea {
+    background-color: #1c1f26 !important;
+    color: white !important;
+}
+
+.stButton>button {
+    background-color: #2e3440;
+    color: white;
+    border-radius: 8px;
+    height: 45px;
     font-weight: 600;
 }
+
 .stButton>button:hover {
-    background: linear-gradient(135deg, #3a3f5c, #2c2f4a);
+    background-color: #3b4252;
 }
-input, textarea {
-    background-color: #1c1f26 !important;
-    color: white !important;
-}
-div[data-baseweb="select"] > div {
-    background-color: #1c1f26 !important;
-    color: white !important;
-}
+
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<div style="text-align:center;margin-bottom:15px;">
-<h1 style="font-size:42px;">DressKraft</h1>
-</div>
-""", unsafe_allow_html=True)
+st.title("DressKraft Orders Dashboard")
 
-# ================= HELPERS =================
+# =====================================================
+# HELPERS
+# =====================================================
 
 def format_indian(number):
     try:
@@ -72,7 +85,31 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= DATA =================
+# =====================================================
+# SIMPLE PASSWORD LOGIN
+# =====================================================
+
+PASSWORD = "Diksha@1999"
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.subheader("Login Required")
+    pwd = st.text_input("Enter Password", type="password")
+
+    if st.button("Login"):
+        if pwd == PASSWORD:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Incorrect Password")
+
+    st.stop()
+
+# =====================================================
+# DATA
+# =====================================================
 
 FILE_NAME = "orders.csv"
 
@@ -85,106 +122,99 @@ else:
         "Remarks","Order Entry Date"
     ])
     # =====================================================
-# ADD ORDER SECTION
+# ADD ORDER SECTION (AUTO RESET – FINAL)
 # =====================================================
 
 st.subheader("➕ Add Order")
 
-est_delivery = st.date_input("Est Delivery", key="add_est")
-name_customer = st.text_input("Customer Name", key="add_name")
+with st.form("add_order_form", clear_on_submit=True):
 
-# ===== LOOK (AFTER NAME) =====
-look = st.selectbox(
-    "Look",
-    ["-- Select --","LED","Non-LED","Patch","Multiple"],
-    key="add_look"
-)
+    est_delivery = st.date_input("Est Delivery")
+    name_customer = st.text_input("Customer Name")
 
-addon = st.selectbox(
-    "Add-on",
-    ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"],
-    key="add_addon"
-)
+    # ===== LOOK (AFTER NAME) =====
+    look = st.selectbox(
+        "Look",
+        ["-- Select --","LED","Non-LED","Patch","Multiple"]
+    )
 
-jacket_type = st.selectbox(
-    "Jacket Type",
-    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
-    key="add_jacket"
-)
+    addon = st.selectbox(
+        "Add-on",
+        ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
+    )
 
-sizes_value = "-"
-male = female = single = None
+    jacket_type = st.selectbox(
+        "Jacket Type",
+        ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+    )
 
-# ===== DYNAMIC SIZING =====
-if jacket_type == "Couple (M + F)":
-    col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
-    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
+    sizes_value = "-"
+    male = female = single = None
 
-elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, step=1, key="add_single")
+    # ===== DYNAMIC SIZING =====
+    if jacket_type == "Couple (M + F)":
+        col1, col2 = st.columns(2)
+        male = col1.number_input("Male Size", 30, 60, step=1)
+        female = col2.number_input("Female Size", 30, 60, step=1)
 
-elif jacket_type == "Custom / More than 2":
-    st.info("Size will be marked as 'Read Chat'")
+    elif jacket_type == "Single":
+        single = st.number_input("Size", 30, 60, step=1)
 
-count = st.number_input("Count", min_value=1, step=1, key="add_count")
-city = st.text_input("City", key="add_city")
-
-production_status = st.selectbox(
-    "Production Status",
-    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
-    key="add_status"
-)
-
-price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
-received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
-remarks = st.text_area("Remarks", key="add_remarks")
-
-if st.button("Add Order"):
-
-    if not name_customer:
-        st.error("Customer Name is required.")
-        st.stop()
-
-    if jacket_type == "Couple (M + F)" and male and female:
-        sizes_value = f"{male}M | {female}F"
-    elif jacket_type == "Single" and single:
-        sizes_value = str(single)
     elif jacket_type == "Custom / More than 2":
-        sizes_value = "Read Chat"
-    else:
-        sizes_value = "-"
+        st.info("Size will be marked as 'Read Chat'")
 
-    balance = price - received if price else 0
+    count = st.number_input("Count", min_value=1, step=1)
+    city = st.text_input("City")
 
-    new_row = {
-        "Est Delivery": est_delivery if est_delivery else "-",
-        "Name": name_customer,
-        "Look": look if look != "-- Select --" else "-",
-        "Add-on": addon if addon != "-- Select --" else "-",
-        "Sizes": sizes_value,
-        "Count": count if count else 1,
-        "City": city if city else "-",
-        "Production Status": production_status if production_status != "-- Select --" else "-",
-        "Price": price if price else 0,
-        "Received": received if received else 0,
-        "Balance": balance,
-        "Remarks": remarks if remarks else "-",
-        "Order Entry Date": datetime.today()
-    }
+    production_status = st.selectbox(
+        "Production Status",
+        ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+    )
 
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    df.to_csv(FILE_NAME, index=False)
+    price = st.number_input("Price", min_value=0.0, step=1.0)
+    received = st.number_input("Received", min_value=0.0, step=1.0)
+    remarks = st.text_area("Remarks")
 
-    st.success("Order Added Successfully!")
+    submitted = st.form_submit_button("Add Order")
 
-    # ===== CLEAR FORM FIELDS =====
-    for key in list(st.session_state.keys()):
-        if key.startswith("add_"):
-            del st.session_state[key]
+    if submitted:
 
-    st.rerun()
-    # =====================================================
+        if not name_customer:
+            st.error("Customer Name is required.")
+        else:
+
+            if jacket_type == "Couple (M + F)" and male and female:
+                sizes_value = f"{male}M | {female}F"
+            elif jacket_type == "Single" and single:
+                sizes_value = str(single)
+            elif jacket_type == "Custom / More than 2":
+                sizes_value = "Read Chat"
+            else:
+                sizes_value = "-"
+
+            balance = price - received if price else 0
+
+            new_row = {
+                "Est Delivery": est_delivery if est_delivery else "-",
+                "Name": name_customer,
+                "Look": look if look != "-- Select --" else "-",
+                "Add-on": addon if addon != "-- Select --" else "-",
+                "Sizes": sizes_value,
+                "Count": count if count else 1,
+                "City": city if city else "-",
+                "Production Status": production_status if production_status != "-- Select --" else "-",
+                "Price": price if price else 0,
+                "Received": received if received else 0,
+                "Balance": balance,
+                "Remarks": remarks if remarks else "-",
+                "Order Entry Date": datetime.today()
+            }
+
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            df.to_csv(FILE_NAME, index=False)
+
+            st.success("Order Added Successfully!")
+            # =====================================================
 # ALL ORDERS SECTION
 # =====================================================
 
@@ -192,7 +222,7 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # ===== FILTER BY PRODUCTION STATUS =====
+    # ===== FILTER =====
     status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
     status_options = sorted(list(set(status_options)))
 
@@ -208,7 +238,7 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ===== AUTO SORT ASCENDING (Oldest to Latest) =====
+    # ===== AUTO SORT ASCENDING =====
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
     df_display = df_display.sort_values("__sort", ascending=True)
     df_display = df_display.drop(columns=["__sort"])
@@ -234,13 +264,13 @@ if not df.empty:
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    # ===== MOVE LOOK AFTER NAME =====
-    columns = df_display.columns.tolist()
-    if "Look" in columns:
-        columns.remove("Look")
-        name_index = columns.index("Name")
-        columns.insert(name_index + 1, "Look")
-    df_display = df_display[columns]
+    # ===== POSITION LOOK AFTER NAME =====
+    cols = df_display.columns.tolist()
+    if "Look" in cols:
+        cols.remove("Look")
+        name_index = cols.index("Name")
+        cols.insert(name_index + 1, "Look")
+    df_display = df_display[cols]
 
     st.dataframe(df_display, use_container_width=True)
 
@@ -349,15 +379,19 @@ if not df.empty:
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    if st.button("🗑 Delete Selected Order"):
-        df2 = df.drop(idx).reset_index(drop=True)
-        df2.to_csv(FILE_NAME, index=False)
-        st.session_state.delete_success = True
-        st.rerun()
+    col_del, col_del_msg = st.columns([1,2])
 
-    if st.session_state.get("delete_success"):
-        st.success("Deleted Successfully")
-        st.session_state.delete_success = False
+    with col_del:
+        if st.button("🗑 Delete Selected Order"):
+            df2 = df.drop(idx).reset_index(drop=True)
+            df2.to_csv(FILE_NAME, index=False)
+            st.session_state.delete_success = True
+            st.rerun()
+
+    with col_del_msg:
+        if st.session_state.get("delete_success"):
+            st.success("Deleted Successfully")
+            st.session_state.delete_success = False
 
     # =====================================================
     # CSV DOWNLOAD
