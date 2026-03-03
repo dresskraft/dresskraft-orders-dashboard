@@ -16,8 +16,7 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 def format_indian(number):
     try:
-        number = float(number)
-        return "{:,.0f}".format(round(number))
+        return "{:,.0f}".format(round(float(number)))
     except:
         return "-"
 
@@ -90,7 +89,7 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # =====================================================
-# DATA (UNCHANGED)
+# DATA
 # =====================================================
 
 FILE_NAME = "orders.csv"
@@ -105,7 +104,7 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER (100% UNCHANGED)
+# ADD ORDER (UNCHANGED)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
@@ -155,7 +154,6 @@ with st.form("order_form", clear_on_submit=True):
     submitted = st.form_submit_button("Add Order")
 
 if submitted:
-
     if not name_customer:
         st.error("Customer Name is required.")
         st.stop()
@@ -191,7 +189,7 @@ if submitted:
     st.success("Order Added Successfully!")
 
 # =====================================================
-# ALL ORDERS (UNCHANGED + EDIT ADDED)
+# ALL ORDERS
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -213,6 +211,7 @@ if not df.empty:
     ).dt.strftime("%d-%m-%Y")
 
     df_display = df_display.fillna("-")
+
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
@@ -220,7 +219,7 @@ if not df.empty:
     st.dataframe(df_display, use_container_width=True)
 
     # =========================
-    # EDIT PANEL (ONLY ADDITION)
+    # EDIT PANEL (FULL DYNAMIC)
     # =========================
 
     st.markdown("### ✏️ Edit Order")
@@ -239,25 +238,90 @@ if not df.empty:
 
         edit = st.session_state.edit_row
 
-        edit_name = st.text_input("Customer Name", value="" if edit["Name"] == "-" else edit["Name"])
-        edit_addon = st.text_input("Add-on", value="" if edit["Add-on"] == "-" else edit["Add-on"])
-        edit_sizes = st.text_input("Sizes", value="" if edit["Sizes"] == "-" else edit["Sizes"])
+        st.markdown("#### Update Details")
+
+        edit_name = st.text_input("Customer Name",
+                                  value="" if edit["Name"] == "-" else edit["Name"])
+
+        addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
+        edit_addon = st.selectbox(
+            "Add-on",
+            addon_options,
+            index=0 if edit["Add-on"] == "-" else addon_options.index(edit["Add-on"])
+        )
+
+        # Detect Jacket Type
+        size_val = str(edit["Sizes"])
+
+        if "M |" in size_val:
+            detected_type = "Couple (M + F)"
+        elif size_val == "Read Chat":
+            detected_type = "Custom / More than 2"
+        elif size_val == "-" or size_val == "":
+            detected_type = "-- Select --"
+        else:
+            detected_type = "Single"
+
+        jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+
+        edit_jacket_type = st.selectbox(
+            "Jacket Type",
+            jacket_options,
+            index=jacket_options.index(detected_type)
+        )
+
+        edit_sizes_value = "-"
+
+        if edit_jacket_type == "Couple (M + F)":
+            try:
+                m, f = size_val.replace("M","").replace("F","").split("|")
+                m = int(m.strip())
+                f = int(f.strip())
+            except:
+                m, f = 40, 36
+
+            col1, col2 = st.columns(2)
+            m_edit = col1.number_input("Male Size", 30, 60, value=m)
+            f_edit = col2.number_input("Female Size", 30, 60, value=f)
+            edit_sizes_value = f"{m_edit}M | {f_edit}F"
+
+        elif edit_jacket_type == "Single":
+            try:
+                s = int(size_val)
+            except:
+                s = 40
+            s_edit = st.number_input("Size", 30, 60, value=s)
+            edit_sizes_value = str(s_edit)
+
+        elif edit_jacket_type == "Custom / More than 2":
+            st.info("Size will be marked as 'Read Chat'")
+            edit_sizes_value = "Read Chat"
+
         edit_count = st.number_input("Count", value=int(edit["Count"]))
-        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"])
-        edit_status = st.text_input("Production Status", value="" if edit["Production Status"] == "-" else edit["Production Status"])
+        edit_city = st.text_input("City",
+                                  value="" if edit["City"] == "-" else edit["City"])
+
+        status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+        edit_status = st.selectbox(
+            "Production Status",
+            status_options,
+            index=0 if edit["Production Status"] == "-" else status_options.index(edit["Production Status"])
+        )
+
         edit_price = st.number_input("Price", value=float(edit["Price"]))
         edit_received = st.number_input("Received", value=float(edit["Received"]))
-        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"])
+        edit_remarks = st.text_area("Remarks",
+                                    value="" if edit["Remarks"] == "-" else edit["Remarks"])
 
         if st.button("Update Order"):
             df.loc[st.session_state.edit_index] = {
                 **edit,
                 "Name": edit_name,
-                "Add-on": edit_addon if edit_addon else "-",
-                "Sizes": edit_sizes if edit_sizes else "-",
+                "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
+                "Sizes": edit_sizes_value,
                 "Count": edit_count,
                 "City": edit_city if edit_city else "-",
-                "Production Status": edit_status if edit_status else "-",
+                "Production Status": edit_status if edit_status != "-- Select --" else "-",
                 "Price": edit_price,
                 "Received": edit_received,
                 "Balance": edit_price - edit_received if edit_price else 0,
