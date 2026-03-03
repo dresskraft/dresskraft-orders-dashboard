@@ -98,11 +98,9 @@ def payment_status_logic(price, received):
     if received == price:
         return "Fully Paid"
     return "-"
-
-
 # =====================================================
 # LOGIN SYSTEM
-# =====================================================
+# ====================================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
