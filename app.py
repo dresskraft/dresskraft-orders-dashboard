@@ -9,26 +9,20 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK THEME RESTORE =================
+# ================= DARK THEME =================
 
 st.markdown("""
 <style>
 
-/* Global background */
+/* Global Dark Background */
 html, body, [class*="css"] {
     background-color: #0f1117;
     color: #ffffff;
 }
 
-/* Reduce top padding */
+/* Reduce top spacing */
 .block-container {
     padding-top: 1rem;
-}
-
-/* Center logo container */
-.logo-container {
-    text-align: center;
-    margin-bottom: 1rem;
 }
 
 /* Buttons */
@@ -43,32 +37,42 @@ html, body, [class*="css"] {
     background-color: #155a8a;
 }
 
-/* Select boxes darker dropdown */
-div[data-baseweb="select"] > div {
-    background-color: #1e1e1e !important;
-    color: white !important;
-    border-radius: 6px;
-}
-
 /* Inputs */
 input, textarea {
     background-color: #1e1e1e !important;
     color: white !important;
 }
 
-/* Remove weird outlines */
-.css-1cpxqw2 {
-    border: none !important;
+/* Select boxes */
+div[data-baseweb="select"] > div {
+    background-color: #1e1e1e !important;
+    color: white !important;
+    border-radius: 6px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ================= LOGO RESTORE =================
+# ================= TEXT LOGO =================
 
-st.markdown('<div class="logo-container">', unsafe_allow_html=True)
-st.image("logo.png", width=180)
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("""
+<div style="
+    text-align: center;
+    margin-top: 15px;
+    margin-bottom: 10px;
+">
+    <h1 style="
+        font-size: 44px;
+        font-weight: 700;
+        background: linear-gradient(90deg, #ff9ac2, #ffffff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0px;
+    ">
+        🎀 DressKraft ✨
+    </h1>
+</div>
+""", unsafe_allow_html=True)
 
 # ================= HELPERS =================
 
@@ -220,11 +224,12 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ===== Payment Status Column =====
+    # ===== Payment Status =====
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
+    # Format Dates
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
     ).dt.strftime("%d-%m-%Y")
@@ -235,6 +240,7 @@ if not df.empty:
 
     df_display = df_display.fillna("-")
 
+    # Format Currency
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
@@ -415,3 +421,4 @@ if not df.empty:
         buffer.getvalue(),
         "dresskraft_orders.pdf"
     )
+    
