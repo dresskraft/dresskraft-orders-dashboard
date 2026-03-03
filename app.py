@@ -105,20 +105,12 @@ else:
         "Remarks","Order Entry Date"
     ])
 
-if "edit_index" not in st.session_state:
-    st.session_state.edit_index = None
-
 # =====================================================
-# ADD / EDIT ORDER
+# ADD ORDER (UNCHANGED)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
-
-# Prefill if editing
-edit_data = {}
-if st.session_state.edit_index is not None:
-    edit_data = df.loc[st.session_state.edit_index].to_dict()
 
 jacket_type = st.selectbox(
     "Jacket Type",
@@ -143,25 +135,27 @@ with st.form("order_form", clear_on_submit=True):
 
     est_delivery = st.date_input("Est Delivery")
     name_customer = st.text_input("Customer Name")
+
     addon = st.selectbox(
         "Add-on",
         ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
     )
+
     count = st.number_input("Count", min_value=1, step=1)
     city = st.text_input("City")
+
     production_status = st.selectbox(
         "Production Status",
         ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
     )
+
     price = st.number_input("Price", min_value=0.0, step=1.0)
     received = st.number_input("Received", min_value=0.0, step=1.0)
     remarks = st.text_area("Remarks")
 
-    submit_label = "Update Order" if st.session_state.edit_index is not None else "Add Order"
-    submitted = st.form_submit_button(submit_label)
+    submitted = st.form_submit_button("Add Order")
 
 if submitted:
-
     if not name_customer:
         st.error("Customer Name is required.")
         st.stop()
@@ -189,21 +183,12 @@ if submitted:
         "Received": received if received else 0,
         "Balance": balance,
         "Remarks": remarks if remarks else "-",
-        "Order Entry Date": df.loc[st.session_state.edit_index]["Order Entry Date"]
-        if st.session_state.edit_index is not None
-        else datetime.today()
+        "Order Entry Date": datetime.today()
     }
 
-    if st.session_state.edit_index is not None:
-        df.loc[st.session_state.edit_index] = new_row
-        st.session_state.edit_index = None
-        st.success("Order Updated Successfully!")
-    else:
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        st.success("Order Added Successfully!")
-
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(FILE_NAME, index=False)
-    st.rerun()
+    st.success("Order Added Successfully!")
 
 # =====================================================
 # ALL ORDERS
@@ -214,6 +199,7 @@ st.subheader("📋 All Orders")
 if not df.empty:
 
     df_display = df.copy()
+
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
@@ -227,24 +213,68 @@ if not df.empty:
     ).dt.strftime("%d-%m-%Y")
 
     df_display = df_display.fillna("-")
+
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
     st.dataframe(df_display, use_container_width=True)
 
-    # ✏️ EDIT OPTION
+    # =====================================================
+    # EDIT PANEL (NEWLY ADDED)
+    # =====================================================
+
+    st.markdown("### ✏️ Edit Order")
+
     edit_idx = st.selectbox(
-        "✏️ Edit Order",
+        "Select Order to Edit",
         df_display.index,
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    if st.button("Load Selected Order"):
+    if st.button("Load for Edit"):
+        st.session_state.edit_row = df.loc[edit_idx].to_dict()
         st.session_state.edit_index = edit_idx
-        st.rerun()
 
-    # DELETE OPTION
+    if "edit_row" in st.session_state:
+
+        edit = st.session_state.edit_row
+
+        st.markdown("#### Update Details")
+
+        edit_name = st.text_input("Customer Name", value=edit["Name"])
+        edit_addon = st.text_input("Add-on", value=edit["Add-on"])
+        edit_sizes = st.text_input("Sizes", value=edit["Sizes"])
+        edit_count = st.number_input("Count", value=int(edit["Count"]))
+        edit_city = st.text_input("City", value=edit["City"])
+        edit_status = st.text_input("Production Status", value=edit["Production Status"])
+        edit_price = st.number_input("Price", value=float(edit["Price"]))
+        edit_received = st.number_input("Received", value=float(edit["Received"]))
+        edit_remarks = st.text_area("Remarks", value=edit["Remarks"])
+
+        if st.button("Update Order"):
+            df.loc[st.session_state.edit_index] = {
+                **edit,
+                "Name": edit_name,
+                "Add-on": edit_addon,
+                "Sizes": edit_sizes,
+                "Count": edit_count,
+                "City": edit_city,
+                "Production Status": edit_status,
+                "Price": edit_price,
+                "Received": edit_received,
+                "Balance": edit_price - edit_received
+                if edit_price else 0,
+                "Remarks": edit_remarks
+            }
+
+            df.to_csv(FILE_NAME, index=False)
+            del st.session_state.edit_row
+            del st.session_state.edit_index
+            st.success("Order Updated Successfully!")
+            st.rerun()
+
+    # DELETE OPTION (UNCHANGED)
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
