@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd 
+import pandas as pd
 import os
 from datetime import datetime
 from io import BytesIO
@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DRESSKRAFT DARK THEME =================
+# ================= PREMIUM DARK THEME =================
 
 st.markdown("""
 <style>
@@ -63,7 +63,6 @@ div[data-baseweb="select"] > div {
     border: 1px solid #2e3440 !important;
 }
 
-/* Dropdown */
 ul[role="listbox"] {
     background-color: #1c1f26 !important;
 }
@@ -104,11 +103,11 @@ st.markdown("""
 <h1 style="
 font-size:44px;
 font-weight:700;
-background: linear-gradient(90deg, #ff9ac2, #ffffff);
+background: linear-gradient(90deg, #b8c0ff, #ffffff);
 -webkit-background-clip: text;
 -webkit-text-fill-color: transparent;
 ">
-🎀 DressKraft ✨
+DressKraft
 </h1>
 </div>
 """, unsafe_allow_html=True)
@@ -149,9 +148,10 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-    # ================= ADD ORDER SECTION =================
+    # =====================================================
+# ADD ORDER SECTION
+# =====================================================
 
-st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
 est_delivery = st.date_input("Est Delivery", key="add_est")
@@ -172,8 +172,7 @@ jacket_type = st.selectbox(
 sizes_value = "-"
 male = female = single = None
 
-# ===== Dynamic Jacket Sizing =====
-
+# ===== DYNAMIC SIZING =====
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
     male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
@@ -199,8 +198,7 @@ received = st.number_input("Received", min_value=0.0, step=1.0, key="add_receive
 remarks = st.text_area("Remarks", key="add_remarks")
 
 # ===== ADD BUTTON =====
-
-if st.button("➕ Add Order"):
+if st.button("Add Order"):
 
     if not name_customer:
         st.error("Customer Name is required.")
@@ -236,18 +234,16 @@ if st.button("➕ Add Order"):
     df.to_csv(FILE_NAME, index=False)
 
     st.success("Order Added Successfully!")
-    # ================= ALL ORDERS SECTION =================
+    st.rerun()
+    # =====================================================
+# ALL ORDERS SECTION
+# =====================================================
 
 st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # ===== Auto Sort by Est Delivery (Ascending Default) =====
-    df["__sort"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
-    df = df.sort_values("__sort", ascending=True)
-    df = df.drop(columns=["__sort"])
-
-    # ===== Production Status Filter =====
+    # ===== PRODUCTION STATUS FILTER =====
     status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
     status_options = sorted(list(set(status_options)))
 
@@ -263,12 +259,17 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ===== Payment Status =====
+    # ===== AUTO SORT ASCENDING =====
+    df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
+    df_display = df_display.sort_values("__sort", ascending=True)
+    df_display = df_display.drop(columns=["__sort"])
+
+    # ===== PAYMENT STATUS =====
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    # Format Dates
+    # ===== FORMAT DATES =====
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
     ).dt.strftime("%d-%m-%Y")
@@ -279,14 +280,16 @@ if not df.empty:
 
     df_display = df_display.fillna("-")
 
-    # Format Currency
+    # ===== FORMAT NUMBERS =====
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
     st.dataframe(df_display, use_container_width=True)
 
-    # ================= EDIT SECTION =================
+    # =====================================================
+    # EDIT SECTION
+    # =====================================================
 
     st.markdown("### ✏️ Edit Order")
 
@@ -299,7 +302,7 @@ if not df.empty:
     col_load, col_msg = st.columns([1,2])
 
     with col_load:
-        if st.button("✏️ Load for Edit"):
+        if st.button("Load for Edit"):
             st.session_state.edit_row = df.loc[edit_idx].to_dict()
             st.session_state.edit_index = edit_idx
 
@@ -307,10 +310,6 @@ if not df.empty:
         if st.session_state.get("update_success"):
             st.success("Updated Successfully")
             st.session_state.update_success = False
-
-        if st.session_state.get("delete_success"):
-            st.success("Deleted Successfully")
-            st.session_state.delete_success = False
 
     if "edit_row" in st.session_state:
 
@@ -381,12 +380,12 @@ if not df.empty:
         edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
         edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city")
 
-        status_options_full = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
+        status_options_edit = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
 
         edit_status = st.selectbox(
             "Production Status",
-            status_options_full,
-            index=status_options_full.index(edit["Production Status"]) if edit["Production Status"] in status_options_full else 0,
+            status_options_edit,
+            index=status_options_edit.index(edit["Production Status"]) if edit["Production Status"] in status_options_edit else 0,
             key="edit_status"
         )
 
@@ -394,52 +393,58 @@ if not df.empty:
         edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
         edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks")
 
-        if st.button("💾 Update Order"):
+        col_upd, col_upd_msg = st.columns([1,2])
 
-            df.loc[st.session_state.edit_index] = {
-                **edit,
-                "Name": edit_name,
-                "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
-                "Sizes": edit_sizes_value,
-                "Count": edit_count,
-                "City": edit_city if edit_city else "-",
-                "Production Status": edit_status if edit_status != "-- Select --" else "-",
-                "Price": edit_price,
-                "Received": edit_received,
-                "Balance": edit_price - edit_received if edit_price else 0,
-                "Remarks": edit_remarks if edit_remarks else "-"
-            }
+        with col_upd:
+            if st.button("Update Order"):
 
-            df.to_csv(FILE_NAME, index=False)
-            st.session_state.update_success = True
-            del st.session_state.edit_row
-            del st.session_state.edit_index
-            st.rerun()
+                df.loc[st.session_state.edit_index] = {
+                    **edit,
+                    "Name": edit_name,
+                    "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
+                    "Sizes": edit_sizes_value,
+                    "Count": edit_count,
+                    "City": edit_city if edit_city else "-",
+                    "Production Status": edit_status if edit_status != "-- Select --" else "-",
+                    "Price": edit_price,
+                    "Received": edit_received,
+                    "Balance": edit_price - edit_received if edit_price else 0,
+                    "Remarks": edit_remarks if edit_remarks else "-"
+                }
 
-    # ================= DELETE SECTION =================
+                df.to_csv(FILE_NAME, index=False)
+                st.session_state.update_success = True
+                del st.session_state.edit_row
+                del st.session_state.edit_index
+                st.rerun()
+
+    # =====================================================
+    # DELETE SECTION (FULL WIDTH)
+    # =====================================================
+
+    st.markdown("### 🗑 Delete Order")
 
     idx = st.selectbox(
-        "Delete Order",
+        "Select Order to Delete",
         df_display.index,
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    # ===== FULL WIDTH DELETE BUTTON =====
+    if st.button("🗑 Delete Selected Order"):
 
-if st.button("🗑 Delete Selected Order"):
+        df2 = df.drop(idx).reset_index(drop=True)
+        df2.to_csv(FILE_NAME, index=False)
 
-    df2 = df.drop(idx).reset_index(drop=True)
-    df2.to_csv(FILE_NAME, index=False)
+        st.session_state.delete_success = True
+        st.rerun()
 
-    st.session_state.delete_success = True
-    st.rerun()
+    if st.session_state.get("delete_success"):
+        st.success("Deleted Successfully")
+        st.session_state.delete_success = False
 
-# ===== RIGHT SIDE SUCCESS MESSAGE =====
-if st.session_state.get("delete_success"):
-    st.success("Deleted Successfully")
-    st.session_state.delete_success = False
-
-    # ================= CSV DOWNLOAD =================
+    # =====================================================
+    # CSV DOWNLOAD
+    # =====================================================
 
     st.download_button(
         "📥 Download CSV",
@@ -447,11 +452,14 @@ if st.session_state.get("delete_success"):
         "dresskraft_orders.csv"
     )
 
-    # ================= PDF DOWNLOAD =================
+    # =====================================================
+    # PDF DOWNLOAD
+    # =====================================================
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
+
     table = Table(data)
     table.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.grey),
@@ -459,6 +467,7 @@ if st.session_state.get("delete_success"):
         ('GRID',(0,0),(-1,-1),0.25,colors.grey),
         ('FONTSIZE',(0,0),(-1,-1),6),
     ]))
+
     doc.build([table])
 
     st.download_button(
@@ -466,4 +475,6 @@ if st.session_state.get("delete_success"):
         buffer.getvalue(),
         "dresskraft_orders.pdf"
     )
-    
+
+else:
+    st.info("No orders yet.")
