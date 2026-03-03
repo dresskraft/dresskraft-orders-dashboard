@@ -1,160 +1,55 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK THEME =================
+# ================= DARK THEME CLEAN STYLING =================
 
 st.markdown("""
 <style>
-html, body, [class*="css"] {
-    background-color: #0e1117;
-    color: #ffffff;
-}
-
-.logo-container {
-    margin-top: 60px;
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-.logo-text {
-    font-size: 36px;
-    font-weight: 700;
-    color: white;
-}
-
-.logo-bow { font-size: 28px; margin-right: 6px; }
-.logo-sparkle { font-size: 22px; margin-left: 6px; }
-
-div[data-baseweb="select"] > div {
-    background-color: #1f2937 !important;
-    color: white !important;
-}
-
-input, textarea {
-    background-color: #1f2937 !important;
-    color: white !important;
-}
-
+.block-container {padding-top: 1.5rem;}
 .stButton>button {
-    background-color: #ec4899;
+    background-color: #1f77b4;
     color: white;
     border-radius: 6px;
-    border: none;
+    height: 3em;
 }
-
 .stButton>button:hover {
-    background-color: #db2777;
+    background-color: #155a8a;
+}
+div[data-baseweb="select"] > div {
+    background-color: #1e1e1e !important;
+    color: white !important;
 }
 </style>
-
-<div class="logo-container">
-    <span class="logo-bow">🎀</span>
-    <span class="logo-text">DressKraft</span>
-    <span class="logo-sparkle">✨</span>
-</div>
 """, unsafe_allow_html=True)
 
-# ================= FINAL WORKING LOGIN =================
-
-import streamlit.components.v1 as components
-
-PASSWORD = "Diksha@1999"
+# ================= LOGIN SYSTEM (SECRETS BASED) =================
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# --- Check localStorage AFTER page loads ---
-components.html("""
-<script>
-if (!window.dresskraft_checked) {
-    window.dresskraft_checked = true;
-    const expiry = localStorage.getItem("dresskraft_login_expiry");
-    if (expiry) {
-        const now = new Date();
-        const expiryDate = new Date(expiry);
-        if (now < expiryDate) {
-            window.parent.postMessage({type: "dresskraft_login", expiry: expiry}, "*");
-        }
-    }
-}
-</script>
-""", height=0)
-
-# Listen for JS message
 if not st.session_state.authenticated:
-    login_data = st.session_state.get("login_data")
 
-    if login_data:
-        try:
-            expiry_time = datetime.fromisoformat(login_data)
-            if datetime.now() < expiry_time:
-                st.session_state.authenticated = True
-        except:
-            pass
+    st.title("🔐 Login")
 
-# Capture postMessage
-if "login_data" not in st.session_state:
-    st.session_state.login_data = None
-
-def handle_message(message):
-    if message["type"] == "dresskraft_login":
-        st.session_state.login_data = message["expiry"]
-        st.rerun()
-
-components.html("""
-<script>
-window.addEventListener("message", (event) => {
-    if (event.data.type === "dresskraft_login") {
-        const streamlitEvent = new CustomEvent("streamlit:setComponentValue", {
-            detail: event.data.expiry
-        });
-        window.dispatchEvent(streamlitEvent);
-    }
-});
-</script>
-""", height=0)
-
-# ================= LOGIN SCREEN =================
-
-if not st.session_state.authenticated:
-    st.title("Login")
     pwd = st.text_input("Enter Password", type="password")
 
     if st.button("Login"):
-        if pwd == PASSWORD:
-            expiry = (datetime.now() + timedelta(hours=24)).isoformat()
+        if pwd == st.secrets["APP_PASSWORD"]:
             st.session_state.authenticated = True
-
-            components.html(f"""
-            <script>
-            localStorage.setItem("dresskraft_login_expiry", "{expiry}");
-            window.location.reload();
-            </script>
-            """, height=0)
-
+            st.rerun()
         else:
             st.error("Incorrect Password")
 
     st.stop()
 
-# Logout
-if st.sidebar.button("Logout"):
-    components.html("""
-    <script>
-    localStorage.removeItem("dresskraft_login_expiry");
-    window.location.reload();
-    </script>
-    """, height=0)
-    
 # ================= HELPERS =================
 
 def format_indian(number):
@@ -191,42 +86,56 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-# ================= ADD ORDER =================
+    # ================= ADD ORDER SECTION =================
 
-st.markdown("## ➕ Add Order")
+st.title("📦 DressKraft Orders Dashboard")
+st.subheader("➕ Add Order")
 
-est_delivery = st.date_input("Est Delivery")
-name_customer = st.text_input("Customer Name")
+est_delivery = st.date_input("Est Delivery", key="add_est")
+name_customer = st.text_input("Customer Name", key="add_name")
 
-addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
-addon = st.selectbox("Add-on", addon_options)
+addon = st.selectbox(
+    "Add-on",
+    ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"],
+    key="add_addon"
+)
 
-jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
-jacket_type = st.selectbox("Jacket Type", jacket_options)
+jacket_type = st.selectbox(
+    "Jacket Type",
+    ["-- Select --","Couple (M + F)","Single","Custom / More than 2"],
+    key="add_jacket"
+)
 
 sizes_value = "-"
 male = female = single = None
 
+# ===== Dynamic Jacket Sizing =====
+
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60)
-    female = col2.number_input("Female Size", 30, 60)
+    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
+    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
 
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60)
+    single = st.number_input("Size", 30, 60, step=1, key="add_single")
 
 elif jacket_type == "Custom / More than 2":
     st.info("Size will be marked as 'Read Chat'")
 
-count = st.number_input("Count", min_value=1)
-city = st.text_input("City")
+count = st.number_input("Count", min_value=1, step=1, key="add_count")
+city = st.text_input("City", key="add_city")
 
-status_options = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
-production_status = st.selectbox("Production Status", status_options)
+production_status = st.selectbox(
+    "Production Status",
+    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
+    key="add_status"
+)
 
-price = st.number_input("Price", min_value=0.0)
-received = st.number_input("Received", min_value=0.0)
-remarks = st.text_area("Remarks")
+price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
+received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
+remarks = st.text_area("Remarks", key="add_remarks")
+
+# ===== Add Order Button =====
 
 if st.button("Add Order"):
 
@@ -234,25 +143,27 @@ if st.button("Add Order"):
         st.error("Customer Name is required.")
         st.stop()
 
-    if jacket_type == "Couple (M + F)":
+    if jacket_type == "Couple (M + F)" and male and female:
         sizes_value = f"{male}M | {female}F"
-    elif jacket_type == "Single":
+    elif jacket_type == "Single" and single:
         sizes_value = str(single)
     elif jacket_type == "Custom / More than 2":
         sizes_value = "Read Chat"
+    else:
+        sizes_value = "-"
 
     balance = price - received if price else 0
 
     new_row = {
-        "Est Delivery": est_delivery,
+        "Est Delivery": est_delivery if est_delivery else "-",
         "Name": name_customer,
         "Add-on": addon if addon != "-- Select --" else "-",
         "Sizes": sizes_value,
-        "Count": count,
+        "Count": count if count else 1,
         "City": city if city else "-",
         "Production Status": production_status if production_status != "-- Select --" else "-",
-        "Price": price,
-        "Received": received,
+        "Price": price if price else 0,
+        "Received": received if received else 0,
         "Balance": balance,
         "Remarks": remarks if remarks else "-",
         "Order Entry Date": datetime.today()
@@ -260,40 +171,40 @@ if st.button("Add Order"):
 
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(FILE_NAME, index=False)
+
     st.success("Order Added Successfully!")
+    # ================= ALL ORDERS SECTION =================
 
-# ================= ALL ORDERS =================
-
-st.markdown("## 📋 All Orders")
+st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # -------- FILTER --------
-    df["Production Status"] = df["Production Status"].fillna("-").replace("", "-")
-    filter_options = sorted(df["Production Status"].unique().tolist())
+    # ===== Auto Sort by Est Delivery (Ascending) =====
+    df["__sort"] = pd.to_datetime(df["Est Delivery"], errors="coerce")
+    df = df.sort_values("__sort", ascending=True)
+    df = df.drop(columns=["__sort"])
+
+    # ===== Production Status Filter =====
+    status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
+    status_options = sorted(list(set(status_options)))
 
     selected_status = st.multiselect(
         "Filter Production Status",
-        options=filter_options,
-        default=filter_options
+        options=status_options,
+        default=status_options
     )
 
     df_display = df.copy()
+    df_display["Production Status"] = df_display["Production Status"].fillna("-").replace("", "-")
 
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # -------- AUTO SORT (Oldest → Latest ALWAYS) --------
-    df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
-    df_display = df_display.sort_values("__sort", ascending=True)
-    df_display = df_display.drop(columns=["__sort"])
-
-    # -------- PAYMENT STATUS --------
+    # ===== Payment Status =====
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    # -------- DATE FORMAT --------
     df_display["Est Delivery"] = pd.to_datetime(
         df_display["Est Delivery"], errors="coerce"
     ).dt.strftime("%d-%m-%Y")
@@ -304,14 +215,13 @@ if not df.empty:
 
     df_display = df_display.fillna("-")
 
-    # -------- NUMBER FORMAT --------
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
     st.dataframe(df_display, use_container_width=True)
 
-    # ================= EDIT =================
+    # ================= EDIT SECTION =================
 
     st.markdown("### ✏️ Edit Order")
 
@@ -321,9 +231,21 @@ if not df.empty:
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    if st.button("Load for Edit"):
-        st.session_state.edit_row = df.loc[edit_idx].to_dict()
-        st.session_state.edit_index = edit_idx
+    col_load, col_msg = st.columns([1,2])
+
+    with col_load:
+        if st.button("Load for Edit"):
+            st.session_state.edit_row = df.loc[edit_idx].to_dict()
+            st.session_state.edit_index = edit_idx
+
+    with col_msg:
+        if st.session_state.get("update_success"):
+            st.success("Updated Successfully")
+            st.session_state.update_success = False
+
+        if st.session_state.get("delete_success"):
+            st.success("Deleted Successfully")
+            st.session_state.delete_success = False
 
     if "edit_row" in st.session_state:
 
@@ -331,13 +253,17 @@ if not df.empty:
 
         edit_name = st.text_input(
             "Customer Name",
-            value="" if edit["Name"] == "-" else edit["Name"]
+            value="" if edit["Name"] == "-" else edit["Name"],
+            key="edit_name"
         )
+
+        addon_options = ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
 
         edit_addon = st.selectbox(
             "Add-on",
             addon_options,
-            index=addon_options.index(edit["Add-on"]) if edit["Add-on"] in addon_options else 0
+            index=addon_options.index(edit["Add-on"]) if edit["Add-on"] in addon_options else 0,
+            key="edit_addon"
         )
 
         size_val = str(edit["Sizes"])
@@ -351,15 +277,18 @@ if not df.empty:
         else:
             detected_type = "Single"
 
-        edit_jacket = st.selectbox(
+        jacket_options = ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
+
+        edit_jacket_type = st.selectbox(
             "Jacket Type",
             jacket_options,
-            index=jacket_options.index(detected_type)
+            index=jacket_options.index(detected_type),
+            key="edit_jacket"
         )
 
         edit_sizes_value = "-"
 
-        if edit_jacket == "Couple (M + F)":
+        if edit_jacket_type == "Couple (M + F)":
             try:
                 m, f = size_val.replace("M","").replace("F","").split("|")
                 m = int(m.strip())
@@ -368,51 +297,40 @@ if not df.empty:
                 m, f = 40, 36
 
             col1, col2 = st.columns(2)
-            m_edit = col1.number_input("Male Size", 30, 60, value=m)
-            f_edit = col2.number_input("Female Size", 30, 60, value=f)
+            m_edit = col1.number_input("Male Size", 30, 60, value=m, key="edit_male")
+            f_edit = col2.number_input("Female Size", 30, 60, value=f, key="edit_female")
             edit_sizes_value = f"{m_edit}M | {f_edit}F"
 
-        elif edit_jacket == "Single":
+        elif edit_jacket_type == "Single":
             try:
                 s = int(size_val)
             except:
                 s = 40
-            s_edit = st.number_input("Size", 30, 60, value=s)
+            s_edit = st.number_input("Size", 30, 60, value=s, key="edit_single")
             edit_sizes_value = str(s_edit)
 
-        elif edit_jacket == "Custom / More than 2":
+        elif edit_jacket_type == "Custom / More than 2":
             st.info("Size will be marked as 'Read Chat'")
             edit_sizes_value = "Read Chat"
 
-        edit_count = st.number_input("Count", value=int(edit["Count"]))
-        edit_city = st.text_input(
-            "City",
-            value="" if edit["City"] == "-" else edit["City"]
-        )
+        edit_count = st.number_input("Count", value=int(edit["Count"]), key="edit_count")
+        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"], key="edit_city")
+
+        status_options_full = ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"]
 
         edit_status = st.selectbox(
             "Production Status",
-            status_options,
-            index=status_options.index(edit["Production Status"]) if edit["Production Status"] in status_options else 0
+            status_options_full,
+            index=status_options_full.index(edit["Production Status"]) if edit["Production Status"] in status_options_full else 0,
+            key="edit_status"
         )
 
-        edit_price = st.number_input("Price", value=float(edit["Price"]))
-        edit_received = st.number_input("Received", value=float(edit["Received"]))
-        edit_remarks = st.text_area(
-            "Remarks",
-            value="" if edit["Remarks"] == "-" else edit["Remarks"]
-        )
+        edit_price = st.number_input("Price", value=float(edit["Price"]), key="edit_price")
+        edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
+        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks")
 
-        col_up_btn, col_up_msg = st.columns([1,2])
+        if st.button("Update Order"):
 
-        with col_up_btn:
-            update_click = st.button("Update Order")
-
-        with col_up_msg:
-            if st.session_state.get("update_success", False):
-                st.success("Updated Successfully")
-
-        if update_click:
             df.loc[st.session_state.edit_index] = {
                 **edit,
                 "Name": edit_name,
@@ -429,34 +347,28 @@ if not df.empty:
 
             df.to_csv(FILE_NAME, index=False)
             st.session_state.update_success = True
+            del st.session_state.edit_row
+            del st.session_state.edit_index
             st.rerun()
 
     # ================= DELETE =================
 
-    st.markdown("### 🗑 Delete Order")
-
-    delete_idx = st.selectbox(
-        "Select Order to Delete",
+    idx = st.selectbox(
+        "Delete Order",
         df_display.index,
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    col_del_btn, col_del_msg = st.columns([1,2])
+    col_del, col_del_msg = st.columns([1,2])
 
-    with col_del_btn:
-        delete_click = st.button("Delete Selected Order")
+    with col_del:
+        if st.button("Delete Selected Order"):
+            df2 = df.drop(idx).reset_index(drop=True)
+            df2.to_csv(FILE_NAME, index=False)
+            st.session_state.delete_success = True
+            st.rerun()
 
-    with col_del_msg:
-        if st.session_state.get("delete_success", False):
-            st.success("Deleted Successfully")
-
-    if delete_click:
-        df = df.drop(delete_idx).reset_index(drop=True)
-        df.to_csv(FILE_NAME, index=False)
-        st.session_state.delete_success = True
-        st.rerun()
-
-    # ================= CSV =================
+    # ================= CSV DOWNLOAD =================
 
     st.download_button(
         "📥 Download CSV",
@@ -464,7 +376,7 @@ if not df.empty:
         "dresskraft_orders.csv"
     )
 
-    # ================= PDF =================
+    # ================= PDF DOWNLOAD =================
 
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
@@ -483,6 +395,3 @@ if not df.empty:
         buffer.getvalue(),
         "dresskraft_orders.pdf"
     )
-
-else:
-    st.info("No orders yet.")
