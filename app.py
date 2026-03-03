@@ -15,11 +15,19 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 # =====================================================
 
 def format_indian(number):
-    if pd.isna(number):
+    try:
+        number = float(number)
+        return "{:,.0f}".format(round(number))
+    except:
         return "-"
-    return "{:,}".format(int(round(float(number))))
 
 def payment_status_logic(price, received):
+    try:
+        price = float(price)
+        received = float(received)
+    except:
+        return "-"
+
     if price == 0:
         return "-"
     if received == 0:
@@ -31,11 +39,12 @@ def payment_status_logic(price, received):
     return "-"
 
 # =====================================================
-# LOGIN SYSTEM
+# LOGIN SYSTEM (24 HOURS)
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
+
 cookie_manager = stx.CookieManager()
 
 if "logged_in" not in st.session_state:
@@ -44,12 +53,15 @@ if "logged_in" not in st.session_state:
 cookie = cookie_manager.get("dresskraft_login")
 
 if cookie:
-    user, expiry = cookie.split("|")
-    expiry = datetime.fromisoformat(expiry)
-    if datetime.now() < expiry:
-        st.session_state.logged_in = True
-        st.session_state.username = user
-    else:
+    try:
+        user, expiry = cookie.split("|")
+        expiry = datetime.fromisoformat(expiry)
+        if datetime.now() < expiry:
+            st.session_state.logged_in = True
+            st.session_state.username = user
+        else:
+            cookie_manager.delete("dresskraft_login")
+    except:
         cookie_manager.delete("dresskraft_login")
 
 if not st.session_state.logged_in:
@@ -69,7 +81,7 @@ if not st.session_state.logged_in:
             st.session_state.username = user
             st.rerun()
         else:
-            st.error("Invalid username or password")
+            st.error("Invalid credentials")
     st.stop()
 
 st.sidebar.write(f"Welcome {st.session_state.username}")
@@ -94,13 +106,12 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER (DYNAMIC SIZE FILTER RESTORED)
+# ADD ORDER (DYNAMIC SIZE FILTER)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
 st.subheader("➕ Add Order")
 
-# --- Reactive Jacket Type ---
 jacket_type = st.selectbox(
     "Jacket Type",
     ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
@@ -120,7 +131,6 @@ elif jacket_type == "Single":
 elif jacket_type == "Custom / More than 2":
     st.info("Size will be marked as 'Read Chat'")
 
-# --- Main Form ---
 with st.form("order_form", clear_on_submit=True):
 
     est_delivery = st.date_input("Est Delivery")
@@ -141,7 +151,6 @@ with st.form("order_form", clear_on_submit=True):
 
     price = st.number_input("Price", min_value=0.0, step=1.0)
     received = st.number_input("Received", min_value=0.0, step=1.0)
-
     remarks = st.text_area("Remarks")
 
     submitted = st.form_submit_button("Add Order")
@@ -157,16 +166,15 @@ if submitted:
         st.error("Please fill mandatory fields.")
         st.stop()
 
-    # STRICT SIZE LOGIC
     if jacket_type == "Couple (M + F)":
         if male is None or female is None:
-            st.error("Please enter both sizes.")
+            st.error("Enter both sizes.")
             st.stop()
         sizes_value = f"{male}M | {female}F"
 
     elif jacket_type == "Single":
         if single is None:
-            st.error("Please enter size.")
+            st.error("Enter size.")
             st.stop()
         sizes_value = str(single)
 
@@ -209,8 +217,14 @@ if not df.empty:
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"]).dt.strftime("%d-%m-%Y")
-    df_display["Order Entry Date"] = pd.to_datetime(df_display["Order Entry Date"]).dt.strftime("%d-%m-%Y")
+    # SAFE DATE CONVERSION (NO ERROR)
+    df_display["Est Delivery"] = pd.to_datetime(
+        df_display["Est Delivery"], errors="coerce"
+    ).dt.strftime("%d-%m-%Y")
+
+    df_display["Order Entry Date"] = pd.to_datetime(
+        df_display["Order Entry Date"], errors="coerce"
+    ).dt.strftime("%d-%m-%Y")
 
     df_display = df_display.fillna("-")
 
@@ -218,15 +232,7 @@ if not df.empty:
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    st.dataframe(
-        df_display,
-        use_container_width=True,
-        column_config={
-            "Name": st.column_config.Column(width="large"),
-            "Production Status": st.column_config.Column(width="large"),
-            "Remarks": st.column_config.Column(width="large"),
-        }
-    )
+    st.dataframe(df_display, use_container_width=True)
 
     idx = st.selectbox(
         "Delete Order",
@@ -238,6 +244,7 @@ if not df.empty:
         df = df.drop(idx).reset_index(drop=True)
         df.to_csv(FILE_NAME, index=False)
         st.success("Deleted")
+        st.rerun()
 
     st.download_button(
         "📥 Download CSV",
