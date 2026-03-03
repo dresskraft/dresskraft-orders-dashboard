@@ -63,48 +63,39 @@ input, textarea {
 </div>
 """, unsafe_allow_html=True)
 
-# ================= LOGIN SYSTEM (24 HOURS STABLE) =================
+# ================= LOGIN SYSTEM (FINAL STABLE) =================
 
 PASSWORD = "Diksha@1999"
-cookie_manager = stx.CookieManager()
 
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+if "login_expiry" not in st.session_state:
+    st.session_state.login_expiry = None
 
-cookie = cookie_manager.get("dresskraft_auth")
+# Check if already logged in and still valid
+if st.session_state.login_expiry:
+    if datetime.now() < st.session_state.login_expiry:
+        authenticated = True
+    else:
+        authenticated = False
+        st.session_state.login_expiry = None
+else:
+    authenticated = False
 
-if cookie:
-    try:
-        expiry = datetime.fromisoformat(cookie)
-        if datetime.now() < expiry:
-            st.session_state.authenticated = True
-        else:
-            cookie_manager.delete("dresskraft_auth")
-    except:
-        cookie_manager.delete("dresskraft_auth")
-
-if not st.session_state.authenticated:
+if not authenticated:
     st.title("Login")
     pwd = st.text_input("Enter Password", type="password")
 
     if st.button("Login"):
         if pwd == PASSWORD:
-            expiry = datetime.now() + timedelta(hours=24)
-            cookie_manager.set(
-                "dresskraft_auth",
-                expiry.isoformat(),
-                expires_at=expiry
-            )
-            st.session_state.authenticated = True
+            st.session_state.login_expiry = datetime.now() + timedelta(hours=24)
             st.rerun()
         else:
             st.error("Incorrect Password")
 
     st.stop()
 
+# Sidebar logout
 if st.sidebar.button("Logout"):
-    cookie_manager.delete("dresskraft_auth")
-    st.session_state.authenticated = False
+    st.session_state.login_expiry = None
     st.rerun()
 
 # ================= HELPERS =================
