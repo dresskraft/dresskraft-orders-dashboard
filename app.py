@@ -39,12 +39,11 @@ def payment_status_logic(price, received):
     return "-"
 
 # =====================================================
-# LOGIN SYSTEM (24 HOURS)
+# LOGIN SYSTEM (UNCHANGED)
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
-
 cookie_manager = stx.CookieManager()
 
 if "logged_in" not in st.session_state:
@@ -91,7 +90,7 @@ if st.sidebar.button("Logout"):
     st.rerun()
 
 # =====================================================
-# DATA
+# DATA (UNCHANGED)
 # =====================================================
 
 FILE_NAME = "orders.csv"
@@ -106,7 +105,7 @@ else:
     ])
 
 # =====================================================
-# ADD ORDER (UNCHANGED)
+# ADD ORDER (100% UNCHANGED)
 # =====================================================
 
 st.title("📦 DressKraft Orders Dashboard")
@@ -156,6 +155,7 @@ with st.form("order_form", clear_on_submit=True):
     submitted = st.form_submit_button("Add Order")
 
 if submitted:
+
     if not name_customer:
         st.error("Customer Name is required.")
         st.stop()
@@ -191,7 +191,7 @@ if submitted:
     st.success("Order Added Successfully!")
 
 # =====================================================
-# ALL ORDERS
+# ALL ORDERS (UNCHANGED + EDIT ADDED)
 # =====================================================
 
 st.subheader("📋 All Orders")
@@ -213,16 +213,15 @@ if not df.empty:
     ).dt.strftime("%d-%m-%Y")
 
     df_display = df_display.fillna("-")
-
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
     st.dataframe(df_display, use_container_width=True)
 
-    # =====================================================
-    # EDIT PANEL (NEWLY ADDED)
-    # =====================================================
+    # =========================
+    # EDIT PANEL (ONLY ADDITION)
+    # =========================
 
     st.markdown("### ✏️ Edit Order")
 
@@ -240,32 +239,29 @@ if not df.empty:
 
         edit = st.session_state.edit_row
 
-        st.markdown("#### Update Details")
-
-        edit_name = st.text_input("Customer Name", value=edit["Name"])
-        edit_addon = st.text_input("Add-on", value=edit["Add-on"])
-        edit_sizes = st.text_input("Sizes", value=edit["Sizes"])
+        edit_name = st.text_input("Customer Name", value="" if edit["Name"] == "-" else edit["Name"])
+        edit_addon = st.text_input("Add-on", value="" if edit["Add-on"] == "-" else edit["Add-on"])
+        edit_sizes = st.text_input("Sizes", value="" if edit["Sizes"] == "-" else edit["Sizes"])
         edit_count = st.number_input("Count", value=int(edit["Count"]))
-        edit_city = st.text_input("City", value=edit["City"])
-        edit_status = st.text_input("Production Status", value=edit["Production Status"])
+        edit_city = st.text_input("City", value="" if edit["City"] == "-" else edit["City"])
+        edit_status = st.text_input("Production Status", value="" if edit["Production Status"] == "-" else edit["Production Status"])
         edit_price = st.number_input("Price", value=float(edit["Price"]))
         edit_received = st.number_input("Received", value=float(edit["Received"]))
-        edit_remarks = st.text_area("Remarks", value=edit["Remarks"])
+        edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"])
 
         if st.button("Update Order"):
             df.loc[st.session_state.edit_index] = {
                 **edit,
                 "Name": edit_name,
-                "Add-on": edit_addon,
-                "Sizes": edit_sizes,
+                "Add-on": edit_addon if edit_addon else "-",
+                "Sizes": edit_sizes if edit_sizes else "-",
                 "Count": edit_count,
-                "City": edit_city,
-                "Production Status": edit_status,
+                "City": edit_city if edit_city else "-",
+                "Production Status": edit_status if edit_status else "-",
                 "Price": edit_price,
                 "Received": edit_received,
-                "Balance": edit_price - edit_received
-                if edit_price else 0,
-                "Remarks": edit_remarks
+                "Balance": edit_price - edit_received if edit_price else 0,
+                "Remarks": edit_remarks if edit_remarks else "-"
             }
 
             df.to_csv(FILE_NAME, index=False)
@@ -274,7 +270,10 @@ if not df.empty:
             st.success("Order Updated Successfully!")
             st.rerun()
 
-    # DELETE OPTION (UNCHANGED)
+    # =========================
+    # DELETE (UNCHANGED)
+    # =========================
+
     idx = st.selectbox(
         "Delete Order",
         df_display.index,
