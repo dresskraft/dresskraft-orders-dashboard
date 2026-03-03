@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
 import os
 import extra_streamlit_components as stx
@@ -38,7 +38,7 @@ def payment_status_logic(price, received):
     return "-"
 
 # =====================================================
-# LOGIN SYSTEM (UNCHANGED)
+# LOGIN SYSTEM
 # =====================================================
 
 USERS = ["srinath", "diksha", "megha"]
@@ -194,11 +194,6 @@ if submitted:
 
 st.subheader("📋 All Orders")
 
-# 🔹 ACKNOWLEDGEMENT (NEW ADDITION ONLY)
-if "update_success" in st.session_state and st.session_state.update_success:
-    st.success("✅ Order Updated Successfully!")
-    st.session_state.update_success = False
-
 if not df.empty:
 
     df_display = df.copy()
@@ -224,7 +219,7 @@ if not df.empty:
     st.dataframe(df_display, use_container_width=True)
 
     # =========================
-    # EDIT PANEL (UNCHANGED LOGIC)
+    # EDIT PANEL
     # =========================
 
     st.markdown("### ✏️ Edit Order")
@@ -235,9 +230,17 @@ if not df.empty:
         format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
     )
 
-    if st.button("Load for Edit"):
-        st.session_state.edit_row = df.loc[edit_idx].to_dict()
-        st.session_state.edit_index = edit_idx
+    col_load, col_msg = st.columns([1,2])
+
+    with col_load:
+        if st.button("Load for Edit"):
+            st.session_state.edit_row = df.loc[edit_idx].to_dict()
+            st.session_state.edit_index = edit_idx
+
+    with col_msg:
+        if "update_success" in st.session_state and st.session_state.update_success:
+            st.success("Order Updated Successfully")
+            st.session_state.update_success = False
 
     if "edit_row" in st.session_state:
 
@@ -333,17 +336,12 @@ if not df.empty:
             }
 
             df.to_csv(FILE_NAME, index=False)
-
             st.session_state.update_success = True
-
             del st.session_state.edit_row
             del st.session_state.edit_index
-
             st.rerun()
 
-    # =========================
-    # DELETE (UNCHANGED)
-    # =========================
+    # DELETE + DOWNLOAD (UNCHANGED)
 
     idx = st.selectbox(
         "Delete Order",
