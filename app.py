@@ -108,7 +108,7 @@ else:
         "Remarks","Order Entry Date"
     ])
     # =====================================================
-# ADD ORDER SECTION (AUTO RESET + DYNAMIC SIZING)
+# ADD ORDER SECTION
 # =====================================================
 
 st.subheader("➕ Add Order")
@@ -129,6 +129,7 @@ with st.form("add_order_form", clear_on_submit=True):
         ["-- Select --","Pearls","Studs","Both Mix","No Add On","Read Chat"]
     )
 
+    # ===== JACKET TYPE =====
     jacket_type = st.selectbox(
         "Jacket Type",
         ["-- Select --","Couple (M + F)","Single","Custom / More than 2"]
@@ -137,7 +138,7 @@ with st.form("add_order_form", clear_on_submit=True):
     sizes_value = "-"
     male = female = single = None
 
-    # ===== DYNAMIC SIZING =====
+    # ===== ORIGINAL DYNAMIC SIZING LOGIC =====
     if jacket_type == "Couple (M + F)":
         col1, col2 = st.columns(2)
         male = col1.number_input("Male Size", 30, 60, step=1)
@@ -169,12 +170,16 @@ with st.form("add_order_form", clear_on_submit=True):
             st.error("Customer Name is required.")
         else:
 
+            # ===== SAVE SIZE BASED ON JACKET TYPE =====
             if jacket_type == "Couple (M + F)" and male and female:
                 sizes_value = f"{male}M | {female}F"
+
             elif jacket_type == "Single" and single:
                 sizes_value = str(single)
+
             elif jacket_type == "Custom / More than 2":
                 sizes_value = "Read Chat"
+
             else:
                 sizes_value = "-"
 
@@ -250,7 +255,7 @@ if not df.empty:
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
-    # ===== POSITION LOOK AFTER NAME =====
+    # ===== MOVE LOOK AFTER NAME =====
     cols = df_display.columns.tolist()
     if "Look" in cols:
         cols.remove("Look")
@@ -261,7 +266,7 @@ if not df.empty:
     st.dataframe(df_display, use_container_width=True)
 
     # =====================================================
-    # EDIT SECTION (FULL DYNAMIC SIZING RESTORED)
+    # EDIT SECTION (FULL ORIGINAL DYNAMIC LOGIC)
     # =====================================================
 
     st.markdown("### ✏️ Edit Order")
@@ -312,7 +317,7 @@ if not df.empty:
             key="edit_addon"
         )
 
-        # ===== DYNAMIC JACKET TYPE =====
+        # ===== DETECT JACKET TYPE FROM SAVED SIZE =====
         size_val = str(edit["Sizes"])
 
         if "M |" in size_val:
@@ -335,6 +340,7 @@ if not df.empty:
 
         edit_sizes_value = "-"
 
+        # ===== ORIGINAL DYNAMIC EDIT SIZING =====
         if edit_jacket_type == "Couple (M + F)":
             try:
                 m, f = size_val.replace("M","").replace("F","").split("|")
@@ -403,7 +409,7 @@ if not df.empty:
                 st.rerun()
 
     # =====================================================
-    # DELETE SECTION
+    # DELETE
     # =====================================================
 
     st.markdown("### 🗑 Delete Order")
