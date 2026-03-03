@@ -99,27 +99,31 @@ def payment_status_logic(price, received):
         return "Fully Paid"
     return "-"
 
-# ================= LOGIN SYSTEM (24 HOUR EXPIRY) =================
+# ================= LOGIN SYSTEM (STABLE 24 HOURS) =================
 
 USERS = ["srinath", "diksha", "megha"]
 PASSWORD = "Diksha@1999"
 
-cookie_manager = stx.CookieManager()
+cookie_manager = stx.CookieManager(key="login_cookie_manager")
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-cookie = cookie_manager.get("dresskraft_login")
+# Wait for cookies to be ready
+cookies = cookie_manager.get_all()
 
-if cookie:
+if "dresskraft_login" in cookies:
+
     try:
-        user, expiry = cookie.split("|")
-        expiry = datetime.fromisoformat(expiry)
+        user, expiry_str = cookies["dresskraft_login"].split("|")
+        expiry = datetime.fromisoformat(expiry_str)
+
         if datetime.now() < expiry:
             st.session_state.logged_in = True
             st.session_state.username = user
         else:
             cookie_manager.delete("dresskraft_login")
+
     except:
         cookie_manager.delete("dresskraft_login")
 
@@ -131,7 +135,9 @@ if not st.session_state.logged_in:
     pwd = st.text_input("Password", type="password")
 
     if st.button("Login"):
+
         if user.lower() in USERS and pwd == PASSWORD:
+
             expiry = datetime.now() + timedelta(hours=24)
 
             cookie_manager.set(
@@ -142,7 +148,10 @@ if not st.session_state.logged_in:
 
             st.session_state.logged_in = True
             st.session_state.username = user
+
+            st.success("Login Successful")
             st.rerun()
+
         else:
             st.error("Invalid credentials")
 
