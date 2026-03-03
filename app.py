@@ -9,68 +9,107 @@ from reportlab.lib.pagesizes import landscape, A4
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
-# ================= DARK THEME =================
+# ================= DRESSKRAFT DARK THEME =================
 
 st.markdown("""
 <style>
 
-/* Global Dark Background */
+/* GLOBAL */
 html, body, [class*="css"] {
     background-color: #0f1117;
     color: #ffffff;
 }
 
-/* Reduce top spacing */
 .block-container {
-    padding-top: 1rem;
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
 }
 
-/* Buttons */
+/* HEADINGS */
+h1, h2, h3, h4 {
+    color: #ffffff !important;
+}
+
+/* 🎀 BUBBLEGUM PINK BUTTONS */
 .stButton>button {
-    background-color: #1f77b4;
+    background: linear-gradient(135deg, #ff69b4, #ff3fa4);
     color: white;
-    border-radius: 8px;
-    height: 3em;
+    border-radius: 10px;
     border: none;
+    height: 3em;
+    width: 100%;
+    font-weight: 600;
+    transition: 0.3s ease;
 }
+
 .stButton>button:hover {
-    background-color: #155a8a;
+    background: linear-gradient(135deg, #ff3fa4, #ff1493);
+    transform: scale(1.03);
 }
 
-/* Inputs */
+/* INPUTS */
 input, textarea {
-    background-color: #1e1e1e !important;
+    background-color: #1c1f26 !important;
     color: white !important;
+    border-radius: 6px !important;
+    border: 1px solid #2e3440 !important;
 }
 
-/* Select boxes */
+/* SELECTBOX */
 div[data-baseweb="select"] > div {
-    background-color: #1e1e1e !important;
+    background-color: #1c1f26 !important;
     color: white !important;
-    border-radius: 6px;
+    border-radius: 6px !important;
+    border: 1px solid #2e3440 !important;
+}
+
+/* Dropdown */
+ul[role="listbox"] {
+    background-color: #1c1f26 !important;
+}
+
+li[role="option"]:hover {
+    background-color: #2a2f3a !important;
+}
+
+/* TABLE */
+thead tr th {
+    background-color: #1f2937 !important;
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+tbody tr {
+    background-color: #111827 !important;
+}
+
+tbody tr:hover {
+    background-color: #1f2937 !important;
+}
+
+/* SUCCESS */
+.stSuccess {
+    background-color: #1b5e20 !important;
+    color: #ffffff !important;
+    border-radius: 6px !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ================= TEXT LOGO =================
+# ================= LOGO =================
 
 st.markdown("""
-<div style="
-    text-align: center;
-    margin-top: 15px;
-    margin-bottom: 10px;
+<div style="text-align:center;margin-top:15px;margin-bottom:10px;">
+<h1 style="
+font-size:44px;
+font-weight:700;
+background: linear-gradient(90deg, #ff9ac2, #ffffff);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
 ">
-    <h1 style="
-        font-size: 44px;
-        font-weight: 700;
-        background: linear-gradient(90deg, #ff9ac2, #ffffff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0px;
-    ">
-        🎀 DressKraft ✨
-    </h1>
+🎀 DressKraft ✨
+</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -159,9 +198,9 @@ price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
 received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
 remarks = st.text_area("Remarks", key="add_remarks")
 
-# ===== Add Order Button =====
+# ===== ADD BUTTON =====
 
-if st.button("Add Order"):
+if st.button("➕ Add Order"):
 
     if not name_customer:
         st.error("Customer Name is required.")
@@ -260,7 +299,7 @@ if not df.empty:
     col_load, col_msg = st.columns([1,2])
 
     with col_load:
-        if st.button("Load for Edit"):
+        if st.button("✏️ Load for Edit"):
             st.session_state.edit_row = df.loc[edit_idx].to_dict()
             st.session_state.edit_index = edit_idx
 
@@ -355,7 +394,7 @@ if not df.empty:
         edit_received = st.number_input("Received", value=float(edit["Received"]), key="edit_received")
         edit_remarks = st.text_area("Remarks", value="" if edit["Remarks"] == "-" else edit["Remarks"], key="edit_remarks")
 
-        if st.button("Update Order"):
+        if st.button("💾 Update Order"):
 
             df.loc[st.session_state.edit_index] = {
                 **edit,
@@ -388,7 +427,7 @@ if not df.empty:
     col_del, col_del_msg = st.columns([1,2])
 
     with col_del:
-        if st.button("Delete Selected Order"):
+        if st.button("🗑 Delete Selected Order"):
             df2 = df.drop(idx).reset_index(drop=True)
             df2.to_csv(FILE_NAME, index=False)
             st.session_state.delete_success = True
