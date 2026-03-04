@@ -183,31 +183,32 @@ with col_add:
 
         st.session_state.add_success = True
 
-        # RESET FORM
-        if "add_est" in st.session_state:
+# RESET FORM
+
+if "add_est" in st.session_state:
     del st.session_state["add_est"]
-        st.session_state.add_name = ""
-        st.session_state.add_look = "-- Select --"
-        st.session_state.add_addon = "-- Select --"
-        st.session_state.add_jacket = "-- Select --"
-        st.session_state.add_count = 1
-        st.session_state.add_city = ""
-        st.session_state.add_status = "-- Select --"
-        st.session_state.add_price = 0.0
-        st.session_state.add_received = 0.0
-        st.session_state.add_remarks = ""
 
-        if "add_male" in st.session_state:
-            del st.session_state["add_male"]
+st.session_state.add_name = ""
+st.session_state.add_look = "-- Select --"
+st.session_state.add_addon = "-- Select --"
+st.session_state.add_jacket = "-- Select --"
+st.session_state.add_count = 1
+st.session_state.add_city = ""
+st.session_state.add_status = "-- Select --"
+st.session_state.add_price = 0.0
+st.session_state.add_received = 0.0
+st.session_state.add_remarks = ""
 
-        if "add_female" in st.session_state:
-            del st.session_state["add_female"]
+if "add_male" in st.session_state:
+    del st.session_state["add_male"]
 
-        if "add_single" in st.session_state:
-            del st.session_state["add_single"]
+if "add_female" in st.session_state:
+    del st.session_state["add_female"]
 
-        st.rerun()
+if "add_single" in st.session_state:
+    del st.session_state["add_single"]
 
+st.rerun()
 with col_add_msg:
     if st.session_state.get("add_success"):
         st.success("Order Added Successfully")
