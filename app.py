@@ -445,8 +445,8 @@ if not df.empty:
 
         ('FONTSIZE',(0,0),(-1,-1),7),
 
-        ('TOPPADDING',(0,0),(-1,-1),2),
-        ('BOTTOMPADDING',(0,0),(-1,-1),2),
+        ('TOPPADDING',(0,0),(-1,-1),1),
+        ('BOTTOMPADDING',(0,0),(-1,-1),1),
         ('LEFTPADDING',(0,0),(-1,-1),3),
         ('RIGHTPADDING',(0,0),(-1,-1),3),
     ]))
