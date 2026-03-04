@@ -87,16 +87,34 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-    # =====================================================
+
+# ================= RESET FORM AFTER ORDER ADD =================
+
+if st.session_state.get("order_added"):
+
+    reset_keys = [
+        "add_est","add_name","add_look","add_addon","add_jacket",
+        "add_count","add_city","add_status","add_price","add_received",
+        "add_remarks","add_male","add_female","add_single"
+    ]
+
+    for k in reset_keys:
+        if k in st.session_state:
+            del st.session_state[k]
+
+    st.success("Order Added Successfully!")
+    st.session_state["order_added"] = False
+
+# =====================================================
 # ADD ORDER SECTION
 # =====================================================
 
 st.subheader("➕ Add Order")
 
 est_delivery = st.date_input("Est Delivery", key="add_est")
+
 name_customer = st.text_input("Customer Name", key="add_name")
 
-# ===== LOOK DROPDOWN (NEW) =====
 look = st.selectbox(
     "Look",
     ["-- Select --","LED","Non-LED","Patch","Multiple"],
@@ -119,19 +137,26 @@ sizes_value = "-"
 male = female = single = None
 
 # ===== DYNAMIC SIZING =====
+
 if jacket_type == "Couple (M + F)":
+
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
-    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
+
+    male = col1.number_input("Male Size",30,60,step=1,key="add_male")
+
+    female = col2.number_input("Female Size",30,60,step=1,key="add_female")
 
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, step=1, key="add_single")
+
+    single = st.number_input("Size",30,60,step=1,key="add_single")
 
 elif jacket_type == "Custom / More than 2":
+
     st.info("Size will be marked as 'Read Chat'")
 
-count = st.number_input("Count", min_value=1, step=1, key="add_count")
-city = st.text_input("City", key="add_city")
+count = st.number_input("Count",min_value=1,step=1,key="add_count")
+
+city = st.text_input("City",key="add_city")
 
 production_status = st.selectbox(
     "Production Status",
@@ -139,57 +164,58 @@ production_status = st.selectbox(
     key="add_status"
 )
 
-price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
-received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
-remarks = st.text_area("Remarks", key="add_remarks")
+price = st.number_input("Price",min_value=0.0,step=1.0,key="add_price")
 
-col_add, col_add_msg = st.columns([1,2])
+received = st.number_input("Received",min_value=0.0,step=1.0,key="add_received")
 
-with col_add:
-    if st.button("Add Order"):
+remarks = st.text_area("Remarks",key="add_remarks")
 
-        if not name_customer:
-            st.error("Customer Name is required.")
-            st.stop()
 
-        if jacket_type == "Couple (M + F)" and male and female:
-            sizes_value = f"{male}M | {female}F"
-        elif jacket_type == "Single" and single:
-            sizes_value = str(single)
-        elif jacket_type == "Custom / More than 2":
-            sizes_value = "Read Chat"
-        else:
-            sizes_value = "-"
+if st.button("Add Order"):
 
-        balance = price - received if price else 0
+    if not name_customer:
+        st.error("Customer Name is required.")
+        st.stop()
 
-        new_row = {
-            "Est Delivery": est_delivery if est_delivery else "-",
-            "Name": name_customer,
-            "Look": look if look != "-- Select --" else "-",
-            "Add-on": addon if addon != "-- Select --" else "-",
-            "Sizes": sizes_value,
-            "Count": count if count else 1,
-            "City": city if city else "-",
-            "Production Status": production_status if production_status != "-- Select --" else "-",
-            "Price": price if price else 0,
-            "Received": received if received else 0,
-            "Balance": balance,
-            "Remarks": remarks if remarks else "-",
-            "Order Entry Date": datetime.today()
-        }
+    if jacket_type == "Couple (M + F)" and male and female:
+        sizes_value = f"{male}M | {female}F"
 
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        df.to_csv(FILE_NAME, index=False)
+    elif jacket_type == "Single" and single:
+        sizes_value = str(single)
 
-        st.session_state.add_success = True
-        st.rerun()
+    elif jacket_type == "Custom / More than 2":
+        sizes_value = "Read Chat"
 
-with col_add_msg:
-    if st.session_state.get("add_success"):
-        st.success("Order Added Successfully")
-        st.session_state.add_success = False
-    # =====================================================
+    else:
+        sizes_value = "-"
+
+    balance = price - received if price else 0
+
+    new_row = {
+        "Est Delivery": est_delivery if est_delivery else "-",
+        "Name": name_customer,
+        "Look": look if look != "-- Select --" else "-",
+        "Add-on": addon if addon != "-- Select --" else "-",
+        "Sizes": sizes_value,
+        "Count": count if count else 1,
+        "City": city if city else "-",
+        "Production Status": production_status if production_status != "-- Select --" else "-",
+        "Price": price if price else 0,
+        "Received": received if received else 0,
+        "Balance": balance,
+        "Remarks": remarks if remarks else "-",
+        "Order Entry Date": datetime.today()
+    }
+
+    df = pd.concat([df,pd.DataFrame([new_row])],ignore_index=True)
+
+    df.to_csv(FILE_NAME,index=False)
+
+    st.session_state["order_added"] = True
+
+    st.rerun()
+
+# =====================================================
 # ALL ORDERS SECTION
 # =====================================================
 
@@ -197,49 +223,15 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # ===== FILTER =====
-    status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
-    status_options = sorted(list(set(status_options)))
-
-    selected_status = st.multiselect(
-        "Filter Production Status",
-        options=status_options,
-        default=status_options
-    )
-
     df_display = df.copy()
-    df_display["Production Status"] = df_display["Production Status"].fillna("-").replace("", "-")
 
-    if selected_status:
-        df_display = df_display[df_display["Production Status"].isin(selected_status)]
+    df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"],errors="coerce")
 
-    # ===== AUTO SORT ASCENDING =====
-    df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
-    df_display = df_display.sort_values("__sort", ascending=True)
+    df_display = df_display.sort_values("__sort",ascending=True)
+
     df_display = df_display.drop(columns=["__sort"])
 
-    # ===== PAYMENT STATUS =====
-    df_display["Payment Status"] = df_display.apply(
-        lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
-    )
-
-    # ===== FORMAT DATES =====
-    df_display["Est Delivery"] = pd.to_datetime(
-        df_display["Est Delivery"], errors="coerce"
-    ).dt.strftime("%d-%m-%Y")
-
-    df_display["Order Entry Date"] = pd.to_datetime(
-        df_display["Order Entry Date"], errors="coerce"
-    ).dt.strftime("%d-%m-%Y")
-
-    df_display = df_display.fillna("-")
-
-    # ===== FORMAT NUMBERS =====
-    df_display["Price"] = df_display["Price"].apply(format_indian)
-    df_display["Received"] = df_display["Received"].apply(format_indian)
-    df_display["Balance"] = df_display["Balance"].apply(format_indian)
-
-    st.dataframe(df_display, use_container_width=True)
+    st.dataframe(df_display,use_container_width=True)
 
     # =====================================================
     # EDIT SECTION
@@ -267,26 +259,26 @@ if not df.empty:
 
     if "edit_row" in st.session_state:
 
-    edit = st.session_state.edit_row
+        edit = st.session_state.edit_row
 
-    # ===== EST DELIVERY EDIT =====
+        # ===== EST DELIVERY EDIT =====
 
-    try:
-        edit_est_date = pd.to_datetime(edit["Est Delivery"]).date()
-    except:
-        edit_est_date = datetime.today().date()
+        try:
+            edit_est_date = pd.to_datetime(edit["Est Delivery"]).date()
+        except:
+            edit_est_date = datetime.today().date()
 
-    edit_est_delivery = st.date_input(
-        "Est Delivery",
-        value=edit_est_date,
-        key="edit_est_delivery"
-    )
+        edit_est_delivery = st.date_input(
+            "Est Delivery",
+            value=edit_est_date,
+            key="edit_est_delivery"
+        )
 
-    edit_name = st.text_input(
-        "Customer Name",
-        value="" if edit["Name"] == "-" else edit["Name"],
-        key="edit_name"
-    )
+        edit_name = st.text_input(
+            "Customer Name",
+            value="" if edit["Name"] == "-" else edit["Name"],
+            key="edit_name"
+        )
         # ===== LOOK EDIT =====
         look_options = ["-- Select --","LED","Non-LED","Patch","Multiple"]
 
