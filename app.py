@@ -50,6 +50,11 @@ div[data-baseweb="select"] li {
     color: white !important;
 }
 
+div[data-baseweb="select"] li[aria-selected="true"] {
+    background-color: #4c5164 !important;
+}
+
+
 div[data-baseweb="select"] li:hover {
     background-color: #3a3f4d !important;
 }
