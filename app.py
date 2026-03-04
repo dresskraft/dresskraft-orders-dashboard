@@ -449,10 +449,11 @@ table.setStyle(TableStyle([
 
 doc.build([table])
 
-st.download_button(
-    "📄 Download PDF",
-    buffer.getvalue(),
-    "dresskraft_orders.pdf"
-)
+    st.download_button(
+        "📄 Download PDF",
+        buffer.getvalue(),
+        "dresskraft_orders.pdf"
+    )
+
 else:
     st.info("No orders yet.")
