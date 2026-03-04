@@ -139,7 +139,6 @@ if st.session_state.get("order_added"):
         if k in st.session_state:
             del st.session_state[k]
 
-    st.success("Order Added Successfully!")
     st.session_state["order_added"] = False
 
 # =====================================================
@@ -147,6 +146,9 @@ if st.session_state.get("order_added"):
 # =====================================================
 
 st.subheader("➕ Add Order")
+
+if st.session_state.get("order_added"):
+    st.success("Order Added Successfully!")
 
 est_delivery = st.date_input("Est Delivery", key="add_est")
 
