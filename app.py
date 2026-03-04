@@ -87,7 +87,8 @@ else:
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-    # =====================================================
+
+# =====================================================
 # ADD ORDER SECTION
 # =====================================================
 
@@ -211,8 +212,7 @@ with col_add_msg:
         st.success("Order Added Successfully")
         st.session_state.add_success = False
 
-# ============================================
-    # =====================================================
+# =====================================================
 # ALL ORDERS SECTION
 # =====================================================
 
@@ -220,7 +220,6 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    # ===== FILTER =====
     status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
     status_options = sorted(list(set(status_options)))
 
@@ -236,34 +235,26 @@ if not df.empty:
     if selected_status:
         df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
-    # ===== AUTO SORT ASCENDING =====
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce")
     df_display = df_display.sort_values("__sort", ascending=True)
     df_display = df_display.drop(columns=["__sort"])
 
-    # ===== PAYMENT STATUS =====
     df_display["Payment Status"] = df_display.apply(
         lambda x: payment_status_logic(x["Price"], x["Received"]), axis=1
     )
 
-    # ===== FORMAT DATES =====
-    df_display["Est Delivery"] = pd.to_datetime(
-        df_display["Est Delivery"], errors="coerce"
-    ).dt.strftime("%d-%m-%Y")
-
-    df_display["Order Entry Date"] = pd.to_datetime(
-        df_display["Order Entry Date"], errors="coerce"
-    ).dt.strftime("%d-%m-%Y")
+    df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce").dt.strftime("%d-%m-%Y")
+    df_display["Order Entry Date"] = pd.to_datetime(df_display["Order Entry Date"], errors="coerce").dt.strftime("%d-%m-%Y")
 
     df_display = df_display.fillna("-")
 
-    # ===== FORMAT NUMBERS =====
     df_display["Price"] = df_display["Price"].apply(format_indian)
     df_display["Received"] = df_display["Received"].apply(format_indian)
     df_display["Balance"] = df_display["Balance"].apply(format_indian)
 
     st.dataframe(df_display, use_container_width=True)
 
+    # (Your Edit, Delete, CSV and PDF sections remain EXACTLY the same as your existing code)
     # =====================================================
     # EDIT SECTION
     # =====================================================
