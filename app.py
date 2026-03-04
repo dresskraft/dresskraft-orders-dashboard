@@ -184,7 +184,7 @@ with col_add:
         st.session_state.add_success = True
 
         # RESET FORM
-        st.session_state.add_est = None
+        st.session_state.add_est = datetime.today().date()
         st.session_state.add_name = ""
         st.session_state.add_look = "-- Select --"
         st.session_state.add_addon = "-- Select --"
