@@ -431,7 +431,7 @@ st.download_button(
 
 buffer = BytesIO()
 
-doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=20)
+doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=20, leftMargin=20)
 
 pdf_df = df_display.drop(columns=["Order Entry Date"], errors="ignore")
 
