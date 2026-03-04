@@ -88,6 +88,25 @@ else:
         "Remarks","Order Entry Date"
     ])
 
+# ================= RESET FORM AFTER ORDER ADD =================
+
+if st.session_state.get("order_added"):
+
+    reset_keys = [
+        "add_est","add_name","add_look","add_addon","add_jacket",
+        "add_count","add_city","add_status","add_price","add_received",
+        "add_remarks","add_male","add_female","add_single"
+    ]
+
+    for k in reset_keys:
+        if k in st.session_state:
+            del st.session_state[k]
+
+    st.success("Order Added Successfully!")
+
+    st.session_state["order_added"] = False
+
+
 # =====================================================
 # ADD ORDER SECTION
 # =====================================================
@@ -118,19 +137,26 @@ jacket_type = st.selectbox(
 sizes_value = "-"
 male = female = single = None
 
+# ===== DYNAMIC SIZING =====
+
 if jacket_type == "Couple (M + F)":
+
     col1, col2 = st.columns(2)
-    male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
-    female = col2.number_input("Female Size", 30, 60, step=1, key="add_female")
+
+    male = col1.number_input("Male Size",30,60,step=1,key="add_male")
+    female = col2.number_input("Female Size",30,60,step=1,key="add_female")
 
 elif jacket_type == "Single":
-    single = st.number_input("Size", 30, 60, step=1, key="add_single")
+
+    single = st.number_input("Size",30,60,step=1,key="add_single")
 
 elif jacket_type == "Custom / More than 2":
+
     st.info("Size will be marked as 'Read Chat'")
 
-count = st.number_input("Count", min_value=1, step=1, key="add_count")
-city = st.text_input("City", key="add_city")
+count = st.number_input("Count",min_value=1,step=1,key="add_count")
+
+city = st.text_input("City",key="add_city")
 
 production_status = st.selectbox(
     "Production Status",
@@ -138,79 +164,57 @@ production_status = st.selectbox(
     key="add_status"
 )
 
-price = st.number_input("Price", min_value=0.0, step=1.0, key="add_price")
-received = st.number_input("Received", min_value=0.0, step=1.0, key="add_received")
-remarks = st.text_area("Remarks", key="add_remarks")
+price = st.number_input("Price",min_value=0.0,step=1.0,key="add_price")
 
-col_add, col_add_msg = st.columns([1,2])
+received = st.number_input("Received",min_value=0.0,step=1.0,key="add_received")
 
-with col_add:
-    if st.button("Add Order"):
+remarks = st.text_area("Remarks",key="add_remarks")
 
-        if not name_customer:
-            st.error("Customer Name is required.")
-            st.stop()
 
-        if jacket_type == "Couple (M + F)" and male and female:
-            sizes_value = f"{male}M | {female}F"
-        elif jacket_type == "Single" and single:
-            sizes_value = str(single)
-        elif jacket_type == "Custom / More than 2":
-            sizes_value = "Read Chat"
-        else:
-            sizes_value = "-"
+if st.button("Add Order"):
 
-        balance = price - received if price else 0
+    if not name_customer:
+        st.error("Customer Name is required.")
+        st.stop()
 
-        new_row = {
-            "Est Delivery": est_delivery if est_delivery else "-",
-            "Name": name_customer,
-            "Look": look if look != "-- Select --" else "-",
-            "Add-on": addon if addon != "-- Select --" else "-",
-            "Sizes": sizes_value,
-            "Count": count if count else 1,
-            "City": city if city else "-",
-            "Production Status": production_status if production_status != "-- Select --" else "-",
-            "Price": price if price else 0,
-            "Received": received if received else 0,
-            "Balance": balance,
-            "Remarks": remarks if remarks else "-",
-            "Order Entry Date": datetime.today()
-        }
+    if jacket_type == "Couple (M + F)" and male and female:
+        sizes_value = f"{male}M | {female}F"
 
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-        df.to_csv(FILE_NAME, index=False)
+    elif jacket_type == "Single" and single:
+        sizes_value = str(single)
 
-        st.session_state.add_success = True
+    elif jacket_type == "Custom / More than 2":
+        sizes_value = "Read Chat"
 
-# RESET FORM SAFELY
+    else:
+        sizes_value = "-"
 
-reset_keys = [
-    "add_est",
-    "add_name",
-    "add_look",
-    "add_addon",
-    "add_jacket",
-    "add_count",
-    "add_city",
-    "add_status",
-    "add_price",
-    "add_received",
-    "add_remarks",
-    "add_male",
-    "add_female",
-    "add_single"
-]
+    balance = price - received if price else 0
 
-for k in reset_keys:
-    if k in st.session_state:
-        del st.session_state[k]
+    new_row = {
+        "Est Delivery": est_delivery if est_delivery else "-",
+        "Name": name_customer,
+        "Look": look if look != "-- Select --" else "-",
+        "Add-on": addon if addon != "-- Select --" else "-",
+        "Sizes": sizes_value,
+        "Count": count if count else 1,
+        "City": city if city else "-",
+        "Production Status": production_status if production_status != "-- Select --" else "-",
+        "Price": price if price else 0,
+        "Received": received if received else 0,
+        "Balance": balance,
+        "Remarks": remarks if remarks else "-",
+        "Order Entry Date": datetime.today()
+    }
 
-st.rerun()
-with col_add_msg:
-    if st.session_state.get("add_success"):
-        st.success("Order Added Successfully")
-        st.session_state.add_success = False
+    df = pd.concat([df,pd.DataFrame([new_row])],ignore_index=True)
+
+    df.to_csv(FILE_NAME,index=False)
+
+    st.session_state["order_added"] = True
+
+    st.rerun()
+
 
 # =====================================================
 # ALL ORDERS SECTION
