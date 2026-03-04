@@ -434,7 +434,9 @@ if not df.empty:
 
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
 
-    data = [df_display.columns.tolist()] + df_display.values.tolist()
+    pdf_df = df_display.drop(columns=["Order Entry Date"], errors="ignore")
+
+    data = [pdf_df.columns.tolist()] + pdf_df.values.tolist()
 
     table = Table(data, repeatRows=1)
 
