@@ -426,28 +426,32 @@ if not df.empty:
 # PDF DOWNLOAD
 # =====================================================
 
-buffer = BytesIO()
+    # =====================================================
+    # PDF DOWNLOAD
+    # =====================================================
 
-doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+    buffer = BytesIO()
 
-data = [df_display.columns.tolist()] + df_display.values.tolist()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
 
-table = Table(data, repeatRows=1)
+    data = [df_display.columns.tolist()] + df_display.values.tolist()
 
-table.setStyle(TableStyle([
-    ('BACKGROUND',(0,0),(-1,0),colors.grey),
-    ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
-    ('GRID',(0,0),(-1,-1),0.25,colors.grey),
+    table = Table(data, repeatRows=1)
 
-    ('FONTSIZE',(0,0),(-1,-1),7),
+    table.setStyle(TableStyle([
+        ('BACKGROUND',(0,0),(-1,0),colors.grey),
+        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+        ('GRID',(0,0),(-1,-1),0.25,colors.grey),
 
-    ('TOPPADDING',(0,0),(-1,-1),2),
-    ('BOTTOMPADDING',(0,0),(-1,-1),2),
-    ('LEFTPADDING',(0,0),(-1,-1),3),
-    ('RIGHTPADDING',(0,0),(-1,-1),3),
-]))
+        ('FONTSIZE',(0,0),(-1,-1),7),
 
-doc.build([table])
+        ('TOPPADDING',(0,0),(-1,-1),2),
+        ('BOTTOMPADDING',(0,0),(-1,-1),2),
+        ('LEFTPADDING',(0,0),(-1,-1),3),
+        ('RIGHTPADDING',(0,0),(-1,-1),3),
+    ]))
+
+    doc.build([table])
 
     st.download_button(
         "📄 Download PDF",
