@@ -183,30 +183,28 @@ with col_add:
 
         st.session_state.add_success = True
 
-# RESET FORM
+# RESET FORM SAFELY
 
-if "add_est" in st.session_state:
-    del st.session_state["add_est"]
+reset_keys = [
+    "add_est",
+    "add_name",
+    "add_look",
+    "add_addon",
+    "add_jacket",
+    "add_count",
+    "add_city",
+    "add_status",
+    "add_price",
+    "add_received",
+    "add_remarks",
+    "add_male",
+    "add_female",
+    "add_single"
+]
 
-st.session_state.add_name = ""
-st.session_state.add_look = "-- Select --"
-st.session_state.add_addon = "-- Select --"
-st.session_state.add_jacket = "-- Select --"
-st.session_state.add_count = 1
-st.session_state.add_city = ""
-st.session_state.add_status = "-- Select --"
-st.session_state.add_price = 0.0
-st.session_state.add_received = 0.0
-st.session_state.add_remarks = ""
-
-if "add_male" in st.session_state:
-    del st.session_state["add_male"]
-
-if "add_female" in st.session_state:
-    del st.session_state["add_female"]
-
-if "add_single" in st.session_state:
-    del st.session_state["add_single"]
+for k in reset_keys:
+    if k in st.session_state:
+        del st.session_state[k]
 
 st.rerun()
 with col_add_msg:
