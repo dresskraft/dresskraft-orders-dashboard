@@ -13,13 +13,18 @@ st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 st.markdown("""
 <style>
+
 html, body, [class*="css"] {
     background-color: #0f1117;
     color: #ffffff;
 }
+
 .block-container {
     padding-top: 1.5rem;
 }
+
+/* Buttons /
+
 .stButton>button {
     background: linear-gradient(135deg, #2c2f4a, #1e2238);
     color: #ffffff;
@@ -29,35 +34,49 @@ html, body, [class*="css"] {
     width: 100%;
     font-weight: 600;
 }
+
 .stButton>button:hover {
     background: linear-gradient(135deg, #3a3f5c, #2c2f4a);
 }
+
+/ Input fields /
+
 input, textarea {
     background-color: #1c1f26 !important;
     color: white !important;
 }
+
+/ ================= DROPDOWN FIX ================= /
+
+/ Main dropdown box /
 div[data-baseweb="select"] > div {
     background-color: #1c1f26 !important;
     color: white !important;
+    border: 1px solid #3a3f5c !important;
 }
 
-div[data-baseweb="select"] ul {
+/ Dropdown list background /
+div[role="listbox"] {
     background-color: #2a2e39 !important;
 }
 
-div[data-baseweb="select"] li {
+/ Dropdown options /
+div[role="option"] {
     background-color: #2a2e39 !important;
     color: white !important;
 }
 
-div[data-baseweb="select"] li[aria-selected="true"] {
-    background-color: #4c5164 !important;
-}
-
-
-div[data-baseweb="select"] li:hover {
+/ Hover option /
+div[role="option"]:hover {
     background-color: #3a3f4d !important;
 }
+
+/ Selected option */
+div[aria-selected="true"] {
+    background-color: #4c5164 !important;
+    color: white !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
