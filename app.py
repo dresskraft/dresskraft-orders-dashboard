@@ -183,7 +183,31 @@ with col_add:
         df.to_csv(FILE_NAME, index=False)
 
         st.session_state.add_success = True
-        st.rerun()
+
+# RESET FORM VALUES
+st.session_state.add_est = None
+st.session_state.add_name = ""
+st.session_state.add_look = "-- Select --"
+st.session_state.add_addon = "-- Select --"
+st.session_state.add_jacket = "-- Select --"
+st.session_state.add_count = 1
+st.session_state.add_city = ""
+st.session_state.add_status = "-- Select --"
+st.session_state.add_price = 0.0
+st.session_state.add_received = 0.0
+st.session_state.add_remarks = ""
+
+# reset dynamic size fields
+if "add_male" in st.session_state:
+    del st.session_state["add_male"]
+
+if "add_female" in st.session_state:
+    del st.session_state["add_female"]
+
+if "add_single" in st.session_state:
+    del st.session_state["add_single"]
+
+st.rerun()
 
 with col_add_msg:
     if st.session_state.get("add_success"):
