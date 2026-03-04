@@ -394,24 +394,29 @@ if not df.empty:
     # DELETE SECTION
     # =====================================================
 
-    st.markdown("### 🗑 Delete Order")
+    # =====================================================
+# DELETE SECTION
+# =====================================================
 
-    idx = st.selectbox(
-        "Select Order to Delete",
-        df_display.index,
-        format_func=lambda x: f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
-    )
+st.markdown("### 🗑 Delete Order")
 
-    if st.button("🗑 Delete Selected Order"):
-        df2 = df.drop(idx).reset_index(drop=True)
-        df2.to_csv(FILE_NAME, index=False)
-        st.session_state.delete_success = True
-        st.rerun()
+delete_options = ["-- Select Order --"] + df_display.index.tolist()
 
-    if st.session_state.get("delete_success"):
-        st.success("Deleted Successfully")
-        st.session_state.delete_success = False
+idx = st.selectbox(
+    "Select Order to Delete",
+    delete_options,
+    format_func=lambda x: x if x == "-- Select Order --" else f"{df_display.loc[x,'Name']} - {df_display.loc[x,'Est Delivery']}"
+)
 
+if st.button("🗑 Delete Selected Order") and idx != "-- Select Order --":
+    df2 = df.drop(idx).reset_index(drop=True)
+    df2.to_csv(FILE_NAME, index=False)
+    st.session_state.delete_success = True
+    st.rerun()
+
+if st.session_state.get("delete_success"):
+    st.success("Deleted Successfully")
+    st.session_state.delete_success = False
     # =====================================================
     # CSV DOWNLOAD
     # =====================================================
