@@ -262,7 +262,22 @@ st.subheader("📋 All Orders")
 
 if not df.empty:
 
-    df_display = df.copy()
+    # ===== FILTER =====
+
+status_options = df["Production Status"].fillna("-").replace("", "-").unique().tolist()
+status_options = sorted(list(set(status_options)))
+
+selected_status = st.multiselect(
+    "Filter Production Status",
+    options=status_options,
+    default=status_options
+)
+
+df_display = df.copy()
+df_display["Production Status"] = df_display["Production Status"].fillna("-").replace("", "-")
+
+if selected_status:
+    df_display = df_display[df_display["Production Status"].isin(selected_status)]
 
     df_display["__sort"] = pd.to_datetime(df_display["Est Delivery"],errors="coerce")
 
