@@ -368,6 +368,7 @@ if not df.empty:
 
                 df.loc[st.session_state.edit_index] = {
                     **edit,
+                    "Est Delivery": edit_est_delivery,
                     "Name": edit_name,
                     "Look": edit_look if edit_look != "-- Select --" else "-",
                     "Add-on": edit_addon if edit_addon != "-- Select --" else "-",
