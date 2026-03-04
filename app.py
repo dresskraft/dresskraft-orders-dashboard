@@ -423,14 +423,16 @@ if not df.empty:
     )
 
     # =====================================================
-    # PDF DOWNLOAD
-    # =====================================================
+# PDF DOWNLOAD
+# =====================================================
 
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
-    data = [df_display.columns.tolist()] + df_display.values.tolist()
+buffer = BytesIO()
 
-    table = Table(data, repeatRows=1)
+doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+
+data = [df_display.columns.tolist()] + df_display.values.tolist()
+
+table = Table(data, repeatRows=1)
 
 table.setStyle(TableStyle([
     ('BACKGROUND',(0,0),(-1,0),colors.grey),
@@ -445,13 +447,12 @@ table.setStyle(TableStyle([
     ('RIGHTPADDING',(0,0),(-1,-1),3),
 ]))
 
-    doc.build([table])
+doc.build([table])
 
-    st.download_button(
-        "📄 Download PDF",
-        buffer.getvalue(),
-        "dresskraft_orders.pdf"
-    )
-
+st.download_button(
+    "📄 Download PDF",
+    buffer.getvalue(),
+    "dresskraft_orders.pdf"
+)
 else:
     st.info("No orders yet.")
