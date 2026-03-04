@@ -230,6 +230,8 @@ if not df.empty:
     df_display = df_display.sort_values("__sort",ascending=True)
 
     df_display = df_display.drop(columns=["__sort"])
+    
+    df_display["Est Delivery"] = pd.to_datetime(df_display["Est Delivery"], errors="coerce").dt.strftime("%d-%b")
 
     st.dataframe(df_display,use_container_width=True)
 
