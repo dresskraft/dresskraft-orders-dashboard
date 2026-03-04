@@ -96,7 +96,6 @@ st.subheader("➕ Add Order")
 est_delivery = st.date_input("Est Delivery", key="add_est")
 name_customer = st.text_input("Customer Name", key="add_name")
 
-# ===== LOOK DROPDOWN (NEW) =====
 look = st.selectbox(
     "Look",
     ["-- Select --","LED","Non-LED","Patch","Multiple"],
@@ -118,7 +117,6 @@ jacket_type = st.selectbox(
 sizes_value = "-"
 male = female = single = None
 
-# ===== DYNAMIC SIZING =====
 if jacket_type == "Couple (M + F)":
     col1, col2 = st.columns(2)
     male = col1.number_input("Male Size", 30, 60, step=1, key="add_male")
@@ -184,35 +182,36 @@ with col_add:
 
         st.session_state.add_success = True
 
-# RESET FORM VALUES
-st.session_state.add_est = None
-st.session_state.add_name = ""
-st.session_state.add_look = "-- Select --"
-st.session_state.add_addon = "-- Select --"
-st.session_state.add_jacket = "-- Select --"
-st.session_state.add_count = 1
-st.session_state.add_city = ""
-st.session_state.add_status = "-- Select --"
-st.session_state.add_price = 0.0
-st.session_state.add_received = 0.0
-st.session_state.add_remarks = ""
+        # RESET FORM
+        st.session_state.add_est = None
+        st.session_state.add_name = ""
+        st.session_state.add_look = "-- Select --"
+        st.session_state.add_addon = "-- Select --"
+        st.session_state.add_jacket = "-- Select --"
+        st.session_state.add_count = 1
+        st.session_state.add_city = ""
+        st.session_state.add_status = "-- Select --"
+        st.session_state.add_price = 0.0
+        st.session_state.add_received = 0.0
+        st.session_state.add_remarks = ""
 
-# reset dynamic size fields
-if "add_male" in st.session_state:
-    del st.session_state["add_male"]
+        if "add_male" in st.session_state:
+            del st.session_state["add_male"]
 
-if "add_female" in st.session_state:
-    del st.session_state["add_female"]
+        if "add_female" in st.session_state:
+            del st.session_state["add_female"]
 
-if "add_single" in st.session_state:
-    del st.session_state["add_single"]
+        if "add_single" in st.session_state:
+            del st.session_state["add_single"]
 
-st.rerun()
+        st.rerun()
 
 with col_add_msg:
     if st.session_state.get("add_success"):
         st.success("Order Added Successfully")
         st.session_state.add_success = False
+
+# ============================================
     # =====================================================
 # ALL ORDERS SECTION
 # =====================================================
