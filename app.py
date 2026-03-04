@@ -391,10 +391,6 @@ if not df.empty:
                 st.rerun()
 
     # =====================================================
-    # DELETE SECTION
-    # =====================================================
-
-    # =====================================================
 # DELETE SECTION
 # =====================================================
 
@@ -417,54 +413,53 @@ if st.button("🗑 Delete Selected Order") and idx != "-- Select Order --":
 if st.session_state.get("delete_success"):
     st.success("Deleted Successfully")
     st.session_state.delete_success = False
-    # =====================================================
-    # CSV DOWNLOAD
-    # =====================================================
 
-    st.download_button(
-        "📥 Download CSV",
-        df_display.to_csv(index=False).encode(),
-        "dresskraft_orders.csv"
-    )
 
-    # =====================================================
+# =====================================================
+# CSV DOWNLOAD
+# =====================================================
+
+st.download_button(
+    "📥 Download CSV",
+    df_display.to_csv(index=False).encode(),
+    "dresskraft_orders.csv"
+)
+
+
+# =====================================================
 # PDF DOWNLOAD
 # =====================================================
 
-    # =====================================================
-    # PDF DOWNLOAD
-    # =====================================================
+buffer = BytesIO()
 
-    buffer = BytesIO()
+doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=20)
 
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=20)
+pdf_df = df_display.drop(columns=["Order Entry Date"], errors="ignore")
 
-    pdf_df = df_display.drop(columns=["Order Entry Date"], errors="ignore")
+data = [pdf_df.columns.tolist()] + pdf_df.values.tolist()
 
-    data = [pdf_df.columns.tolist()] + pdf_df.values.tolist()
+table = Table(data, repeatRows=1)
 
-    table = Table(data, repeatRows=1)
+table.setStyle(TableStyle([
+    ('BACKGROUND',(0,0),(-1,0),colors.grey),
+    ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+    ('GRID',(0,0),(-1,-1),0.25,colors.grey),
 
-    table.setStyle(TableStyle([
-        ('BACKGROUND',(0,0),(-1,0),colors.grey),
-        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
-        ('GRID',(0,0),(-1,-1),0.25,colors.grey),
+    ('FONTSIZE',(0,0),(-1,-1),7),
 
-        ('FONTSIZE',(0,0),(-1,-1),7),
+    ('TOPPADDING',(0,0),(-1,-1),1),
+    ('BOTTOMPADDING',(0,0),(-1,-1),1),
+    ('LEFTPADDING',(0,0),(-1,-1),3),
+    ('RIGHTPADDING',(0,0),(-1,-1),3),
+]))
 
-        ('TOPPADDING',(0,0),(-1,-1),1),
-        ('BOTTOMPADDING',(0,0),(-1,-1),1),
-        ('LEFTPADDING',(0,0),(-1,-1),3),
-        ('RIGHTPADDING',(0,0),(-1,-1),3),
-    ]))
+doc.build([table])
 
-    doc.build([table])
-
-    st.download_button(
-        "📄 Download PDF",
-        buffer.getvalue(),
-        "dresskraft_orders.pdf"
-    )
+st.download_button(
+    "📄 Download PDF",
+    buffer.getvalue(),
+    "dresskraft_orders.pdf"
+)
 
 else:
     st.info("No orders yet.")
