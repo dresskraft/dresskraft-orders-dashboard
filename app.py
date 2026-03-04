@@ -40,6 +40,19 @@ div[data-baseweb="select"] > div {
     background-color: #1c1f26 !important;
     color: white !important;
 }
+
+div[data-baseweb="select"] ul {
+    background-color: #2a2e39 !important;
+}
+
+div[data-baseweb="select"] li {
+    background-color: #2a2e39 !important;
+    color: white !important;
+}
+
+div[data-baseweb="select"] li:hover {
+    background-color: #3a3f4d !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
