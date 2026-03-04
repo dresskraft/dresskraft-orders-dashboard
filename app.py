@@ -199,7 +199,7 @@ city = st.text_input("City",key="add_city")
 
 production_status = st.selectbox(
     "Production Status",
-    ["-- Select --","To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
+    ["To Start","Ongoing","Pending for Payment","Paid - To Dispatch","Dispatched"],
     key="add_status"
 )
 
