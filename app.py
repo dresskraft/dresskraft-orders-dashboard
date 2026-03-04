@@ -437,7 +437,7 @@ if st.session_state.get("delete_success"):
 
     buffer = BytesIO()
 
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), topMargin=20)
 
     pdf_df = df_display.drop(columns=["Order Entry Date"], errors="ignore")
 
