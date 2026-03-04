@@ -267,26 +267,26 @@ if not df.empty:
 
     if "edit_row" in st.session_state:
 
-        edit = st.session_state.edit_row
-        # ===== EST DELIVERY EDIT =====
+    edit = st.session_state.edit_row
 
-try:
-    edit_est_date = pd.to_datetime(edit["Est Delivery"]).date()
-except:
-    edit_est_date = datetime.today().date()
+    # ===== EST DELIVERY EDIT =====
 
-edit_est_delivery = st.date_input(
-    "Est Delivery",
-    value=edit_est_date,
-    key="edit_est_delivery"
-)
+    try:
+        edit_est_date = pd.to_datetime(edit["Est Delivery"]).date()
+    except:
+        edit_est_date = datetime.today().date()
 
-        edit_name = st.text_input(
-            "Customer Name",
-            value="" if edit["Name"] == "-" else edit["Name"],
-            key="edit_name"
-        )
+    edit_est_delivery = st.date_input(
+        "Est Delivery",
+        value=edit_est_date,
+        key="edit_est_delivery"
+    )
 
+    edit_name = st.text_input(
+        "Customer Name",
+        value="" if edit["Name"] == "-" else edit["Name"],
+        key="edit_name"
+    )
         # ===== LOOK EDIT =====
         look_options = ["-- Select --","LED","Non-LED","Patch","Multiple"]
 
