@@ -430,13 +430,20 @@ if not df.empty:
     doc = SimpleDocTemplate(buffer, pagesize=landscape(A4))
     data = [df_display.columns.tolist()] + df_display.values.tolist()
 
-    table = Table(data)
-    table.setStyle(TableStyle([
-        ('BACKGROUND',(0,0),(-1,0),colors.grey),
-        ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
-        ('GRID',(0,0),(-1,-1),0.25,colors.grey),
-        ('FONTSIZE',(0,0),(-1,-1),6),
-    ]))
+    table = Table(data, repeatRows=1)
+
+table.setStyle(TableStyle([
+    ('BACKGROUND',(0,0),(-1,0),colors.grey),
+    ('TEXTCOLOR',(0,0),(-1,0),colors.whitesmoke),
+    ('GRID',(0,0),(-1,-1),0.25,colors.grey),
+
+    ('FONTSIZE',(0,0),(-1,-1),7),
+
+    ('TOPPADDING',(0,0),(-1,-1),2),
+    ('BOTTOMPADDING',(0,0),(-1,-1),2),
+    ('LEFTPADDING',(0,0),(-1,-1),3),
+    ('RIGHTPADDING',(0,0),(-1,-1),3),
+]))
 
     doc.build([table])
 
