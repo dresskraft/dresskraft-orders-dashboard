@@ -278,6 +278,7 @@ if st.button("Add Order"):
     df = pd.concat([df,pd.DataFrame([new_row])],ignore_index=True)
 
     df.to_csv(FILE_NAME,index=False)
+    update_github_csv(df)
 
     st.session_state["order_added"] = True
 
@@ -469,6 +470,7 @@ if not df.empty:
                 }
 
                 df.to_csv(FILE_NAME, index=False)
+                update_github_csv(df)
                 st.session_state.update_success = True
                 del st.session_state.edit_row
                 del st.session_state.edit_index
@@ -491,6 +493,7 @@ if not df.empty:
     if st.button("🗑 Delete Selected Order") and idx != "-- Select Order --":
         df2 = df.drop(idx).reset_index(drop=True)
         df2.to_csv(FILE_NAME, index=False)
+        update_github_csv(df2)
         st.session_state.delete_success = True
         st.rerun()
 
