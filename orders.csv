@@ -1,18 +1,18 @@
 Est Delivery,Name,Look,Add-on,Sizes,Count,City,Production Status,Price,Received,Balance,Remarks,Order Entry Date
-26-Feb,Lavishka Wadhwa,LED,No Add On,Read Chat,4,Thane,Pending for Payment,14700,11000,3700,Photos shared - Payment Pending (3700),
-01-Mar,Sahi Doshi,Patch,No Add On,Read Chat,2,Pune,Pending for Payment,7499,0,7499,Full Payment Pending,
-03-Mar,Rishab Mehra,-,-,-,2,-,Pending for Payment,8000,6000,2000,Photos to be shared,
-05-Mar,Dhairya Mehta,LED,-,-,2,Mumbai,To Start,8200,4100,4100,-,
-06-Mar,Riddhi,LED,-,-,2,-,-,7749,2000,5749,-,
-06-Mar,Vidhi,Patch,-,-,2,-,To Start,7750,7750,0,-,
-07-Mar,Mayuri Rathod,-,-,-,2,Pune,To Start,7200,3500,3700,-,
-08-Mar,Lakshit Choudary,Non-LED,Both Mix,30M | 30F,2,New Delhi,To Start,4200,4000,200,-,
-08-Mar,Aman Kedia,-,-,-,2,-,-,8250,4000,4250,-,
-08-Mar,Virth Sukhwani,-,-,-,1,-,-,0,0,0,-,
-08-Mar,Raghav Sanwal,Patch,-,-,2,Jodhpur,To Start,8600,4000,4600,-,
-09-Mar,Surabhi Baheti,LED,No Add On,-,2,Vapi - Mumbai,To Start,8500,4000,4500,-,
-10-Mar,CA Manav Kedia,Non-LED,-,42M | 38F,2,2 different,Ongoing,4800,2000,2800,-,
-10-Mar,Anushka Chordiya (wed on 24th),-,-,-,2,-,To Start,7500,2500,5000,-,
-15-Mar,Arnav Katariya (Mehak’s chat),-,-,-,4,-,-,11500,6000,5500,-,
-15-Mar,Akshita Jain (Vedmutha),Non-LED,Pearls,46M | 40F,2,Bhiwandi,To Start,4400,2200,2200,-,
-25-Mar,Harkeet,-,-,-,2,-,-,8000,4000,4000,-,
+2026-02-26,Lavishka Wadhwa,LED,No Add On,Read Chat,2,-,Ongoing,7749,2000,5749,-,2026-02-20
+2026-03-01,Sahi Doshi,Patch,No Add On,Read Chat,2,-,To Start,7749,0,7749,-,2026-02-21
+2026-03-03,Rishab Mehra,-,-,-,2,-,Pending for Payment,0,0,0,-,2026-02-22
+2026-03-05,Dhairya Mehta,LED,-,-,2,Mumbai,To Start,0,0,0,-,2026-02-23
+2026-03-06,Riddhi,LED,-,-,2,-,Ongoing,7749,2000,5749,-,2026-02-24
+2026-03-06,Vidhi,Patch,-,-,2,-,To Start,7750,0,7750,-,2026-02-25
+2026-03-07,Mayuri Rathod,-,-,-,2,Pune,To Start,0,0,0,-,2026-02-26
+2026-03-08,Lakshit Choudary,Non-LED,Both Mix,Read Chat,2,-,To Start,0,0,0,-,2026-02-27
+2026-03-08,Aman Kedia,-,-,-,2,-,Ongoing,8250,4000,4250,-,2026-02-28
+2026-03-08,Virth Sukhwani,-,-,-,1,-,Ongoing,0,0,0,-,2026-02-28
+2026-03-08,Raghav Sanwal,Patch,-,-,2,Jodhpur,To Start,0,0,0,-,2026-02-28
+2026-03-09,Surabhi Baheti,LED,No Add On,-,2,-,To Start,0,0,0,-,2026-03-01
+2026-03-10,CA Manav Kedia,Non-LED,-,42M | 36F,2,-,To Start,0,0,0,-,2026-03-02
+2026-03-10,Anushka Chordiya (wed on 24th),-,-,-,2,-,To Start,0,0,0,-,2026-03-02
+2026-03-15,Arnav Katariya (Mehak’s chat),-,-,-,2,-,To Start,0,0,0,-,2026-03-03
+2026-03-15,Akshita Jain (Vedmutha),Non-LED,-,-,2,-,To Start,0,0,0,-,2026-03-03
+2026-03-25,Harkeet,-,-,-,2,-,To Start,8000,4000,4000,-,2026-03-04
