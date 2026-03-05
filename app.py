@@ -21,8 +21,12 @@ def update_github_csv(df):
         "Authorization": f"token {token}"
     }
 
+    # check if file exists
     r = requests.get(url, headers=headers)
-    sha = r.json()["sha"]
+
+    sha = None
+    if r.status_code == 200:
+        sha = r.json()["sha"]
 
     csv_data = df.to_csv(index=False)
 
@@ -30,12 +34,14 @@ def update_github_csv(df):
 
     data = {
         "message": "Update orders.csv from dashboard",
-        "content": content,
-        "sha": sha
+        "content": content
     }
 
-    requests.put(url, headers=headers, json=data)
+    if sha:
+        data["sha"] = sha
 
+    requests.put(url, headers=headers, json=data)
+    
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ================= DARK THEME =================
