@@ -40,8 +40,10 @@ def update_github_csv(df):
     if sha:
         data["sha"] = sha
 
-    requests.put(url, headers=headers, json=data)
-    
+    response = requests.put(url, headers=headers, json=data)
+    if response.status_code not in [200, 201]:
+        st.error(f"GitHub update failed: {response.text}")
+
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ================= DARK THEME =================
