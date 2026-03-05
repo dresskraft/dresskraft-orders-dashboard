@@ -11,38 +11,44 @@ import base64
 
 def update_github_csv(df):
 
-    token = st.secrets["GITHUB_TOKEN"]
-    repo = st.secrets["REPO_NAME"]
-    path = st.secrets["FILE_PATH"]
+    try:
+        token = st.secrets["GITHUB_TOKEN"]
+        repo = st.secrets["REPO_NAME"]
+        path = st.secrets["FILE_PATH"]
 
-    url = f"https://api.github.com/repos/{repo}/contents/{path}"
+        url = f"https://api.github.com/repos/{repo}/contents/{path}"
 
-    headers = {
-        "Authorization": f"token {token}"
-    }
+        headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github+json"
+        }
 
-    # check if file exists
-    r = requests.get(url, headers=headers)
+        r = requests.get(url, headers=headers)
 
-    sha = None
-    if r.status_code == 200:
-        sha = r.json()["sha"]
+        sha = None
+        if r.status_code == 200:
+            sha = r.json()["sha"]
 
-    csv_data = df.to_csv(index=False)
+        csv_data = df.to_csv(index=False)
+        encoded = base64.b64encode(csv_data.encode()).decode()
 
-    content = base64.b64encode(csv_data.encode()).decode()
+        data = {
+            "message": "Update orders.csv from dashboard",
+            "content": encoded
+        }
 
-    data = {
-        "message": "Update orders.csv from dashboard",
-        "content": content
-    }
+        if sha:
+            data["sha"] = sha
 
-    if sha:
-        data["sha"] = sha
+        response = requests.put(url, headers=headers, json=data)
 
-    response = requests.put(url, headers=headers, json=data)
-    if response.status_code not in [200, 201]:
-        st.error(f"GitHub update failed: {response.text}")
+        if response.status_code not in [200, 201]:
+            st.error(f"GitHub Update Failed: {response.text}")
+        else:
+            st.success("GitHub CSV Updated")
+
+    except Exception as e:
+        st.error(f"GitHub Error: {str(e)}")
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
