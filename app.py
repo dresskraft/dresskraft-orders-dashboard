@@ -9,6 +9,33 @@ from reportlab.lib.pagesizes import landscape, A4
 import requests
 import base64
 
+def update_github_csv(df):
+
+    token = st.secrets["GITHUB_TOKEN"]
+    repo = st.secrets["REPO_NAME"]
+    path = st.secrets["FILE_PATH"]
+
+    url = f"https://api.github.com/repos/{repo}/contents/{path}"
+
+    headers = {
+        "Authorization": f"token {token}"
+    }
+
+    r = requests.get(url, headers=headers)
+    sha = r.json()["sha"]
+
+    csv_data = df.to_csv(index=False)
+
+    content = base64.b64encode(csv_data.encode()).decode()
+
+    data = {
+        "message": "Update orders.csv from dashboard",
+        "content": content,
+        "sha": sha
+    }
+
+    requests.put(url, headers=headers, json=data)
+
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ================= DARK THEME =================
