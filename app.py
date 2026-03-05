@@ -157,12 +157,20 @@ github_raw_url = f"https://raw.githubusercontent.com/{st.secrets['REPO_NAME']}/m
 
 try:
     df = pd.read_csv(github_raw_url)
+
+    # save local backup
+    df.to_csv(FILE_NAME, index=False)
+
 except:
-    df = pd.DataFrame(columns=[
-        "Est Delivery","Name","Look","Add-on","Sizes","Count","City",
-        "Production Status","Price","Received","Balance",
-        "Remarks","Order Entry Date"
-    ])
+
+    if os.path.exists(FILE_NAME):
+        df = pd.read_csv(FILE_NAME)
+    else:
+        df = pd.DataFrame(columns=[
+            "Est Delivery","Name","Look","Add-on","Sizes","Count","City",
+            "Production Status","Price","Received","Balance",
+            "Remarks","Order Entry Date"
+        ])
     
 # ================= RESET FORM AFTER ORDER ADD =================
 
