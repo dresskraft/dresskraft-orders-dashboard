@@ -6,6 +6,8 @@ from io import BytesIO
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
+import requests
+import base64
 
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
