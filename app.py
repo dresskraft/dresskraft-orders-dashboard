@@ -153,15 +153,17 @@ def payment_status_logic(price, received):
 
 FILE_NAME = "orders.csv"
 
-if os.path.exists(FILE_NAME):
-    df = pd.read_csv(FILE_NAME)
-else:
+github_raw_url = f"https://raw.githubusercontent.com/{st.secrets['REPO_NAME']}/main/orders.csv"
+
+try:
+    df = pd.read_csv(github_raw_url)
+except:
     df = pd.DataFrame(columns=[
         "Est Delivery","Name","Look","Add-on","Sizes","Count","City",
         "Production Status","Price","Received","Balance",
         "Remarks","Order Entry Date"
     ])
-
+    
 # ================= RESET FORM AFTER ORDER ADD =================
 
 if st.session_state.get("order_added"):
