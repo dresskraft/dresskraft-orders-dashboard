@@ -304,6 +304,7 @@ if st.button("Add Order"):
     df = pd.concat([df,pd.DataFrame([new_row])],ignore_index=True)
 
     df.to_csv(FILE_NAME,index=False)
+    
     update_github_csv(df)
 
     st.session_state["order_added"] = True
