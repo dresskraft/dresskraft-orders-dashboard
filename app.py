@@ -11,8 +11,6 @@ import base64
 
 def update_github_csv(df):
 
-    st.write("GitHub update function called")
-    
     try:
         token = st.secrets["GITHUB_TOKEN"]
         repo = st.secrets["REPO_NAME"]
@@ -22,36 +20,38 @@ def update_github_csv(df):
 
         headers = {
             "Authorization": f"token {token}",
-            "Accept": "application/vnd.github+json"
+            "Accept": "application/vnd.github+json",
+            "Cache-Control": "no-cache"
         }
 
+        # fetch latest file info
         r = requests.get(url, headers=headers)
-
         sha = None
+
         if r.status_code == 200:
-            sha = r.json()["sha"]
+            sha = r.json().get("sha")
 
         csv_data = df.to_csv(index=False)
         encoded = base64.b64encode(csv_data.encode()).decode()
 
-        data = {
-            "message": "Update orders.csv from dashboard",
-            "content": encoded
+        payload = {
+            "message": "Auto update orders.csv",
+            "content": encoded,
+            "branch": "main"
         }
 
         if sha:
-            data["sha"] = sha
+            payload["sha"] = sha
 
-        response = requests.put(url, headers=headers, json=data)
+        response = requests.put(url, headers=headers, json=payload)
 
-        if response.status_code not in [200, 201]:
-            st.error(f"GitHub Update Failed: {response.text}")
+        if response.status_code in [200, 201]:
+            st.toast("GitHub CSV synced ✅")
         else:
-            st.success("GitHub CSV Updated")
+            st.error(f"GitHub update failed: {response.text}")
 
     except Exception as e:
-        st.error(f"GitHub Error: {str(e)}")
-
+        st.error(f"GitHub error: {str(e)}")
 st.set_page_config(page_title="DressKraft Orders Dashboard", layout="wide")
 
 # ================= DARK THEME =================
