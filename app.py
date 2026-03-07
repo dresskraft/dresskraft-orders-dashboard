@@ -11,6 +11,8 @@ import base64
 
 def update_github_csv(df):
 
+    st.write("GitHub update function called")
+    
     try:
         token = st.secrets["GITHUB_TOKEN"]
         repo = st.secrets["REPO_NAME"]
